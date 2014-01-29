@@ -20,20 +20,19 @@ x einen einfachen quickcheck-testcase machen, damit die dateien wenigstens
 
 x dokumentation für edoc einfügen, soweit fertig machen
 
-o in ein neues projekt einchecken
-    o move ham_eqc.erl to its own directory (otherwise compilation fails if
-        you do not have it installed)
-    o wieder hamsterdb runterladen, bauen (ohne tcmalloc!)
-    o eigenes README mit anleitung und anweisung für LD_LIBRARY_PATH
+x in ein neues projekt einchecken
+    x wieder hamsterdb runterladen, bauen (ohne tcmalloc!)
+    x eigenes README mit anleitung und anweisung für LD_LIBRARY_PATH
+o test compilation if eqc is not installed - does it still work?
 
 o ham_parameter_t in env_create, env_open, env_create_db, env_open_db
 o run different configurations for the environment
 o run different configurations for the various databases
-o dann insert/erase/find dazunehmen
+o insert/erase/find
     o and overwrite
     o and duplicates
-o dann transaktionen
-o dann cursor
+o transactions
+o cursor
 
-o brauche samples!
+o need samples!
 
