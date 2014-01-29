@@ -2,3 +2,5 @@ ebin
 priv
 *.db
 doc
+.eqc-info
+*.eqc
