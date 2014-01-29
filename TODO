@@ -1,0 +1,39 @@
+
+x mit nifs anbinden
+    x env_close
+    x db_close
+    x env_rename_db
+    x env_erase_db
+    x env_create
+    x env_open
+    x env_create_db
+    x env_open_db
+
+x einen einfachen quickcheck-testcase machen, damit die dateien wenigstens
+    einmal ausgeführt werden
+    x für create_db
+    x für open_db
+    x für close_db
+    x für erase_db
+    x für rename_db
+    x im rebar beim target "test" ausführen
+
+x dokumentation für edoc einfügen, soweit fertig machen
+
+o in ein neues projekt einchecken
+    o move ham_eqc.erl to its own directory (otherwise compilation fails if
+        you do not have it installed)
+    o wieder hamsterdb runterladen, bauen (ohne tcmalloc!)
+    o eigenes README mit anleitung und anweisung für LD_LIBRARY_PATH
+
+o ham_parameter_t in env_create, env_open, env_create_db, env_open_db
+o run different configurations for the environment
+o run different configurations for the various databases
+o dann insert/erase/find dazunehmen
+    o and overwrite
+    o and duplicates
+o dann transaktionen
+o dann cursor
+
+o brauche samples!
+

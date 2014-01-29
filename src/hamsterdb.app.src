@@ -1,0 +1,12 @@
+{application, hamsterdb,
+ [
+  {description, "An erlang driver for hamsterdb (http://hamsterdb.com)"},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { hamsterdb_app, []}},
+  {env, []}
+ ]}.
