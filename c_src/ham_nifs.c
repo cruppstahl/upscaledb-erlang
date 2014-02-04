@@ -1,24 +1,3 @@
-// -------------------------------------------------------------------
-//
-// hammy: An Erlang binding for hamsterdb
-//
-// Copyright (c) 2010 Hypothetical Labs, Inc. All Rights Reserved.
-//
-// This file is provided to you under the Apache License,
-// Version 2.0 (the "License"); you may not use this file
-// except in compliance with the License.  You may obtain
-// a copy of the License at
-//
-//   http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing,
-// software distributed under the License is distributed on an
-// "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// KIND, either express or implied.  See the License for the
-// specific language governing permissions and limitations
-// under the License.
-//
-// -------------------------------------------------------------------
 #include <string.h>
 #include <stdio.h>
 
@@ -31,6 +10,9 @@ ERL_NIF_TERM g_atom_key_not_found;
 ERL_NIF_TERM g_atom_duplicate_key;
 ErlNifResourceType *g_ham_env_resource;
 ErlNifResourceType *g_ham_db_resource;
+
+#define MAX_PARAMETERS 64
+#define MAX_STRING 2048
 
 static ERL_NIF_TERM
 pointer_to_term(ErlNifEnv *env, void *ptr)
@@ -124,6 +106,130 @@ status_to_atom(ErlNifEnv *env, ham_status_t st)
   return (0);
 }
 
+static int
+get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ham_parameter_t *parameters,
+            char *logdir_buf, char *aeskey_buf)
+{
+  unsigned i = 0;
+  ERL_NIF_TERM cell;
+
+  if (!enif_is_list(env, term))
+    return (0);
+
+  while (enif_get_list_cell(env, term, &cell, &term)) {
+    int arity;
+    char atom[128];
+    const ERL_NIF_TERM *array;
+
+    if (!enif_get_tuple(env, cell, &arity, &array) || arity != 2)
+      return (0);
+    if (enif_get_atom(env, array[0], &atom[0], sizeof(atom),
+              ERL_NIF_LATIN1) <= 0)
+      return (0);
+
+    if (!strcmp(atom, "cache_size")) {
+      parameters[i].name = HAM_PARAM_CACHE_SIZE;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "page_size")) {
+      parameters[i].name = HAM_PARAM_PAGE_SIZE;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "key_size")) {
+      parameters[i].name = HAM_PARAM_KEY_SIZE;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "record_size")) {
+      parameters[i].name = HAM_PARAM_RECORD_SIZE;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "max_databases")) {
+      parameters[i].name = HAM_PARAM_MAX_DATABASES;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "key_type")) {
+      parameters[i].name = HAM_PARAM_KEY_TYPE;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "log_directory")) {
+      parameters[i].name = HAM_PARAM_LOG_DIRECTORY;
+      if (!enif_get_string(env, array[1], logdir_buf, MAX_STRING,
+              ERL_NIF_LATIN1) <= 0)
+        return (0);
+      parameters[i].value = *(ham_u64_t *)logdir_buf;
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "encryption_key")) {
+      parameters[i].name = HAM_PARAM_ENCRYPTION_KEY;
+      if (!enif_get_string(env, array[1], aeskey_buf, MAX_STRING,
+              ERL_NIF_LATIN1) <= 0)
+        return (0);
+      parameters[i].value = *(ham_u64_t *)aeskey_buf;
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "network_timeout_sec")) {
+      parameters[i].name = HAM_PARAM_NETWORK_TIMEOUT_SEC;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+
+    // the following parameters are read-only; we do not need to
+    // extract a value
+    if (!strcmp(atom, "flags")) {
+      parameters[i].name = HAM_PARAM_FLAGS;
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "filemode")) {
+      parameters[i].name = HAM_PARAM_FILEMODE;
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "filename")) {
+      parameters[i].name = HAM_PARAM_FILENAME;
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "database_name")) {
+      parameters[i].name = HAM_PARAM_DATABASE_NAME;
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "max_keys_per_page")) {
+      parameters[i].name = HAM_PARAM_MAX_KEYS_PER_PAGE;
+      i++;
+      continue;
+    }
+
+    // still here? that's an error
+    return (0);
+  }
+
+  return (1);
+}
+
 ERL_NIF_TERM
 ham_nifs_strerror(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -137,8 +243,6 @@ ham_nifs_strerror(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   return (enif_make_string(env, ham_strerror(st), ERL_NIF_LATIN1));
 }
 
-// TODO
-// parameters: konvertieren
 ERL_NIF_TERM
 ham_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -146,7 +250,10 @@ ham_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ham_u32_t flags = 0;
   ham_u32_t mode = 0;
   ham_status_t st;
-  char filename[1024 * 8];
+  char filename[MAX_STRING];
+  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  char logdir_buf[MAX_STRING];
+  char aesdir_buf[MAX_STRING];
 
   if (argc != 4)
     return (enif_make_badarg(env));
@@ -157,6 +264,9 @@ ham_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[2], &mode))
     return (enif_make_badarg(env));
+  if (!get_parameters(env, argv[3], &parameters[0],
+              &logdir_buf[0], &aesdir_buf[0]))
+    return (enif_make_badarg(env));
 
   st = ham_env_create(&henv, filename, flags, mode, 0);
   if (st)
@@ -165,15 +275,16 @@ ham_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   return (enif_make_tuple2(env, g_atom_ok, pointer_to_term(env, henv)));
 }
 
-// TODO
-// parameters: konvertieren
 ERL_NIF_TERM
 ham_nifs_env_open(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ham_env_t *henv;
   ham_u32_t flags;
   ham_status_t st;
-  char filename[1024 * 8];
+  char filename[MAX_STRING];
+  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  char logdir_buf[MAX_STRING];
+  char aesdir_buf[MAX_STRING];
 
   if (argc != 3)
     return (enif_make_badarg(env));
@@ -181,6 +292,9 @@ ham_nifs_env_open(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
               ERL_NIF_LATIN1) <= 0)
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[1], &flags))
+    return (enif_make_badarg(env));
+  if (!get_parameters(env, argv[2], &parameters[0],
+              &logdir_buf[0], &aesdir_buf[0]))
     return (enif_make_badarg(env));
 
   st = ham_env_open(&henv, filename, flags, 0);
@@ -190,8 +304,6 @@ ham_nifs_env_open(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   return (enif_make_tuple2(env, g_atom_ok, pointer_to_term(env, henv)));
 }
 
-// TODO
-// parameters fehlen
 ERL_NIF_TERM
 ham_nifs_env_create_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -200,6 +312,9 @@ ham_nifs_env_create_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ham_status_t st;
   ham_u32_t dbname;
   ham_u32_t flags;
+  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  char logdir_buf[MAX_STRING];
+  char aesdir_buf[MAX_STRING];
 
   if (argc != 4)
     return (enif_make_badarg(env));
@@ -208,6 +323,9 @@ ham_nifs_env_create_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   if (!enif_get_uint(env, argv[1], &dbname))
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[2], &flags))
+    return (enif_make_badarg(env));
+  if (!get_parameters(env, argv[3], &parameters[0],
+              &logdir_buf[0], &aesdir_buf[0]))
     return (enif_make_badarg(env));
 
   st = ham_env_create_db(henv, &hdb, dbname, flags, 0);
@@ -217,8 +335,6 @@ ham_nifs_env_create_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   return (enif_make_tuple2(env, g_atom_ok, pointer_to_term(env, hdb)));
 }
 
-// TODO
-// parameters fehlen
 ERL_NIF_TERM
 ham_nifs_env_open_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
@@ -227,6 +343,9 @@ ham_nifs_env_open_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ham_status_t st;
   ham_u32_t dbname;
   ham_u32_t flags;
+  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  char logdir_buf[MAX_STRING];
+  char aesdir_buf[MAX_STRING];
 
   if (argc != 4)
     return (enif_make_badarg(env));
@@ -235,6 +354,9 @@ ham_nifs_env_open_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   if (!enif_get_uint(env, argv[1], &dbname))
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[2], &flags))
+    return (enif_make_badarg(env));
+  if (!get_parameters(env, argv[3], &parameters[0],
+              &logdir_buf[0], &aesdir_buf[0]))
     return (enif_make_badarg(env));
 
   st = ham_env_open_db(henv, &hdb, dbname, flags, 0);

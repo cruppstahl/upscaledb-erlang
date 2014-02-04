@@ -1,6 +1,8 @@
 ebin
 priv
 *.db
+*.db.*
+erl_crash.dump
 doc
 .eqc-info
 *.eqc

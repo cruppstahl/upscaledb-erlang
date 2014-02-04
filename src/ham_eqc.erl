@@ -5,7 +5,9 @@
 
 -compile(export_all).
 
--record(state, {open = [],      % list of open databases [{name, handle}]
+-record(state, {env_flags = [], % environment flags for ham_env_create
+                env_parameters = [], % environment parameters for ham_env_create
+                open = [],      % list of open databases [{name, handle}]
                 databases = []  % list of existing databases [name]
                 }).
 
@@ -54,7 +56,8 @@ create_db_next(State, Result, [_EnvHandle, DbName]) ->
 % ham_env_open_db ---------------------------------
 
 open_db_pre(State) ->
-  State#state.open /= [].
+  State#state.open /= []
+    andalso not lists:member(in_memory, State#state.env_flags).
 
 open_db_command(_State) ->
   {call, ?MODULE, open_db, [{var, env}, dbname()]}.
@@ -91,7 +94,8 @@ open_db_next(State, Result, [_EnvHandle, DbName]) ->
 % ham_env_erase_db ---------------------------------
 
 erase_db_pre(State) ->
-  State#state.databases /= [].
+  State#state.databases /= []
+    andalso not lists:member(in_memory, State#state.env_flags).
 
 erase_db_pre(State, [_EnvHandle, DbName]) ->
   lists:keymember(DbName, 1, State#state.open) == false
@@ -112,7 +116,8 @@ erase_db_next(State, _Result, [_EnvHandle, DbName]) ->
 % ham_env_rename_db ---------------------------------
 
 rename_db_pre(State) ->
-  State#state.databases /= [].
+  State#state.databases /= []
+    andalso not lists:member(in_memory, State#state.env_flags).
 
 rename_db_pre(State, [_EnvHandle, OldName, NewName]) ->
   % names must not be identical
@@ -155,26 +160,47 @@ db_close_post(_State, [_DbHandle], Result) ->
   Result == ok.
 
 db_close_next(State, _Result, [DbHandle]) ->
-  State#state{open = lists:keydelete(DbHandle, 2, State#state.open)}.
+  {DbName, DbHandle} = lists:keyfind(DbHandle, 2, State#state.open),
+  case lists:member(in_memory, State#state.env_flags) of
+    true ->
+      State#state{open = lists:keydelete(DbHandle, 2, State#state.open),
+                  databases = lists:delete(DbName, State#state.databases)};
+    false ->
+      State#state{open = lists:keydelete(DbHandle, 2, State#state.open)}
+  end.
 
-%weight(_State, db_close) ->
-%  0;
-%weight(_State, _) ->
-%  10.
+
+env_flags() ->
+  oneof([
+    list(elements([in_memory])),
+    list(elements([enable_fsync, disable_mmap, cache_unlimited,
+                     enable_recovery]))]).
+
+env_parameters() ->
+  list(elements([{cache_size, 100000}, {page_size, 1024 * 4}])).
+
+is_valid_combination(EnvFlags, EnvParams) ->
+  not (lists:member(in_memory, EnvFlags)
+    andalso lists:keymember(cache_size, 1, EnvParams)).
 
 prop_ham() ->
-  ?FORALL(Cmds, commands(?MODULE),
-    begin
-      {ok, EnvHandle} = ham:env_create("ham_eqc.db"),
-      {History, State, Result} = run_commands(?MODULE, Cmds,
-                                            [{env, EnvHandle}]),
-      eqc_statem:show_states(
-        pretty_commands(?MODULE, Cmds, {History, State, Result},
-          aggregate(command_names(Cmds),
-            collect(length(Cmds),
-              begin
-                ham:env_close(EnvHandle),
-                Result == ok
-              end))))
-    end).
+  ?FORALL({EnvFlags, EnvParams}, {env_flags(), env_parameters()},
+    ?IMPLIES(is_valid_combination(EnvFlags, EnvParams),
+      ?FORALL(Cmds, commands(?MODULE, #state{env_flags = EnvFlags,
+                                           env_parameters = EnvParams}),
+        begin
+          io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
+          {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
+                                         EnvParams),
+          {History, State, Result} = run_commands(?MODULE, Cmds,
+                                              [{env, EnvHandle}]),
+          eqc_statem:show_states(
+            pretty_commands(?MODULE, Cmds, {History, State, Result},
+              aggregate(command_names(Cmds),
+                collect(length(Cmds),
+                  begin
+                    ham:env_close(EnvHandle),
+                    Result == ok
+                  end))))
+        end))).
 
