@@ -23,16 +23,17 @@ x dokumentation für edoc einfügen, soweit fertig machen
 x in ein neues projekt einchecken
     x wieder hamsterdb runterladen, bauen (ohne tcmalloc!)
     x eigenes README mit anleitung und anweisung für LD_LIBRARY_PATH
-o test compilation if eqc is not installed - does it still work?
 
 x ham_parameter_t in env_create, env_open, env_create_db, env_open_db
 x test with in-memory environment
-o run different configurations for the environment
+x run different configurations for the environment
+
 o run different configurations for the various databases
 o insert/erase/find
     o and overwrite
     o and duplicates
 
+o test compilation if eqc is not installed - does it still work?
 o add license headers
 
 o transactions

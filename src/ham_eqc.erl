@@ -3,6 +3,15 @@
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eqc/include/eqc_statem.hrl").
 
+-define(HAM_TYPE_BINARY, 0).
+-define(HAM_TYPE_CUSTOM, 1).
+-define(HAM_TYPE_UINT8, 3).
+-define(HAM_TYPE_UINT16, 5).
+-define(HAM_TYPE_UINT32, 7).
+-define(HAM_TYPE_UINT64, 9).
+-define(HAM_TYPE_REAL32, 11).
+-define(HAM_TYPE_REAL64, 12).
+
 -compile(export_all).
 
 -record(state, {env_flags = [], % environment flags for ham_env_create
@@ -22,21 +31,41 @@ initial_state() ->
 
 % ham_env_create_db ---------------------------------
 
+create_db_flags() ->
+  [elements([undefined, enable_duplicate_keys, record_number])].
+
+create_db_parameters() ->
+  ?LET(KeySize, choose(1, 128),
+    ?LET(RecordSize, choose(0, 1024 * 1024 * 4),
+      [
+        {record_size, RecordSize},
+        oneof([
+                [{key_type, ?HAM_TYPE_BINARY}, {key_size, KeySize}],
+                {key_type, ?HAM_TYPE_UINT8},
+                {key_type, ?HAM_TYPE_UINT16},
+                {key_type, ?HAM_TYPE_UINT32},
+                {key_type, ?HAM_TYPE_UINT64},
+                {key_type, ?HAM_TYPE_REAL32},
+                {key_type, ?HAM_TYPE_REAL64}
+              ])
+      ])).
+
 create_db_pre(State) ->
   length(State#state.databases) < 30.
 
 create_db_command(_State) ->
-  {call, ?MODULE, create_db, [{var, env}, dbname()]}.
+  {call, ?MODULE, create_db, [{var, env}, dbname(), create_db_flags(),
+                              create_db_parameters()]}.
 
-create_db(EnvHandle, DbName) ->
-  case ham:env_create_db(EnvHandle, DbName) of
+create_db(EnvHandle, DbName, DbFlags, DbParams) ->
+  case ham:env_create_db(EnvHandle, DbName, DbFlags, lists:flatten(DbParams)) of
     {ok, DbHandle} ->
       DbHandle;
     {error, What} ->
       {error, What}
   end.
 
-create_db_post(State, [_EnvHandle, DbName], Result) ->
+create_db_post(State, [_EnvHandle, DbName, _DbFlags, _DbParams], Result) ->
   case lists:member(DbName, State#state.databases) of
     true ->
       eq(Result, {error, database_already_exists});
@@ -44,7 +73,7 @@ create_db_post(State, [_EnvHandle, DbName], Result) ->
       true
   end.
 
-create_db_next(State, Result, [_EnvHandle, DbName]) ->
+create_db_next(State, Result, [_EnvHandle, DbName, _DbFlags, _DbParams]) ->
   case lists:member(DbName, State#state.databases) of
     true ->
       State;
@@ -55,22 +84,25 @@ create_db_next(State, Result, [_EnvHandle, DbName]) ->
 
 % ham_env_open_db ---------------------------------
 
+open_db_flags() ->
+    [elements([undefined, read_only])].
+
 open_db_pre(State) ->
   State#state.open /= []
     andalso not lists:member(in_memory, State#state.env_flags).
 
 open_db_command(_State) ->
-  {call, ?MODULE, open_db, [{var, env}, dbname()]}.
+  {call, ?MODULE, open_db, [{var, env}, dbname(), open_db_flags()]}.
 
-open_db(EnvHandle, DbName) ->
-  case ham:env_open_db(EnvHandle, DbName) of
+open_db(EnvHandle, DbName, DbFlags) ->
+  case ham:env_open_db(EnvHandle, DbName, DbFlags) of
     {ok, DbHandle} ->
       DbHandle;
     {error, What} ->
       {error, What}
   end.
 
-open_db_post(State, [_EnvHandle, DbName], Result) ->
+open_db_post(State, [_EnvHandle, DbName, _DbFlags], Result) ->
   case Result of
     {error, database_already_open} ->
       eq(lists:keymember(DbName, 1, State#state.open), true);
@@ -82,7 +114,7 @@ open_db_post(State, [_EnvHandle, DbName], Result) ->
       true
   end.
 
-open_db_next(State, Result, [_EnvHandle, DbName]) ->
+open_db_next(State, Result, [_EnvHandle, DbName, _DbFlags]) ->
   case (lists:member(DbName, State#state.databases) == true
           andalso lists:keymember(DbName, 1, State#state.open) == false) of
     true ->
@@ -170,6 +202,7 @@ db_close_next(State, _Result, [DbHandle]) ->
   end.
 
 
+
 env_flags() ->
   oneof([
     list(elements([in_memory])),
@@ -189,7 +222,7 @@ prop_ham() ->
       ?FORALL(Cmds, commands(?MODULE, #state{env_flags = EnvFlags,
                                            env_parameters = EnvParams}),
         begin
-          io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
+          %io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
           {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
                                          EnvParams),
           {History, State, Result} = run_commands(?MODULE, Cmds,
