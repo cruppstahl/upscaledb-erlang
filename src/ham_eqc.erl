@@ -11,6 +11,8 @@
 -define(HAM_TYPE_UINT64, 9).
 -define(HAM_TYPE_REAL32, 11).
 -define(HAM_TYPE_REAL64, 12).
+-define(HAM_KEY_SIZE_UNLIMITED, 16#ffff).
+-define(HAM_RECORD_SIZE_UNLIMITED, 16#ffffffff).
 
 -compile(export_all).
 
@@ -38,8 +40,13 @@ create_db_parameters() ->
   ?LET(KeySize, choose(1, 128),
     ?LET(RecordSize, choose(0, 1024 * 1024 * 4),
       [
-        {record_size, RecordSize},
         oneof([
+                {record_size, ?HAM_RECORD_SIZE_UNLIMITED},
+                {record_size, RecordSize}
+              ]),
+        oneof([
+                [{key_type, ?HAM_TYPE_BINARY}, {key_size,
+                                                ?HAM_KEY_SIZE_UNLIMITED}],
                 [{key_type, ?HAM_TYPE_BINARY}, {key_size, KeySize}],
                 {key_type, ?HAM_TYPE_UINT8},
                 {key_type, ?HAM_TYPE_UINT16},
@@ -205,7 +212,7 @@ db_close_next(State, _Result, [DbHandle]) ->
 
 env_flags() ->
   oneof([
-    list(elements([in_memory])),
+    [in_memory],
     list(elements([enable_fsync, disable_mmap, cache_unlimited,
                      enable_recovery]))]).
 
@@ -222,7 +229,7 @@ prop_ham() ->
       ?FORALL(Cmds, commands(?MODULE, #state{env_flags = EnvFlags,
                                            env_parameters = EnvParams}),
         begin
-          %io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
+          io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
           {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
                                          EnvParams),
           {History, State, Result} = run_commands(?MODULE, Cmds,

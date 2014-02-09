@@ -12,14 +12,17 @@
 -author("Christoph Rupp <chris@crupp.de>").
 
 -export([strerror/1,
-     env_create/1, env_create/2, env_create/3, env_create/4,
-     env_open/1, env_open/2, env_open/3,
-     env_create_db/2, env_create_db/3, env_create_db/4,
-     env_open_db/2, env_open_db/3, env_open_db/4,
-     env_rename_db/3,
-     env_erase_db/2,
-     db_close/1,
-     env_close/1]).
+   env_create/1, env_create/2, env_create/3, env_create/4,
+   env_open/1, env_open/2, env_open/3,
+   env_create_db/2, env_create_db/3, env_create_db/4,
+   env_open_db/2, env_open_db/3, env_open_db/4,
+   env_rename_db/3,
+   env_erase_db/2,
+   db_insert/3, db_insert/4,
+   db_erase/2,
+   db_find/2,
+   db_close/1,
+   env_close/1]).
 
 -opaque env() :: term().
 -opaque db() :: term().
@@ -30,17 +33,17 @@
 -spec strerror(integer()) ->
   string().
 strerror(Status) ->
-  strerror_impl(Status).
+  ham_nifs:strerror(Status).
 
 
 
 -type env_create_flag() ::
-     undefined
-     | in_memory
-     | enable_fsync
-     | disable_mmap
-     | cache_unlimited
-     | enable_recovery.
+   undefined
+   | in_memory
+   | enable_fsync
+   | disable_mmap
+   | cache_unlimited
+   | enable_recovery.
 
 %% @doc Creates a new Environment. Expects a filename for the new
 %% Environment.
@@ -72,7 +75,7 @@ env_create(Filename, Flags, Mode) ->
 %% Environment. See @type env_create_flags.
 %% This wraps the native ham_env_create function.
 -spec env_create(string(), [env_create_flag()], integer(),
-         [{atom(), integer() | atom()}]) ->
+       [{atom(), integer() | atom()}]) ->
   {ok, env()} | {error, atom()}.
 env_create(Filename, Flags, Mode, Parameters) ->
   env_create_impl(Filename, Flags, Mode, Parameters).
@@ -80,13 +83,13 @@ env_create(Filename, Flags, Mode, Parameters) ->
 
 
 -type env_open_flag() ::
-     undefined
-     | read_only
-     | enable_fsync
-     | disable_mmap
-     | cache_unlimited
-     | enable_recovery
-     | auto_recovery.
+   undefined
+   | read_only
+   | enable_fsync
+   | disable_mmap
+   | cache_unlimited
+   | enable_recovery
+   | auto_recovery.
 
 %% @doc Opens an existing Environment. Expects a filename.
 %% This wraps the native ham_env_open function.
@@ -107,7 +110,7 @@ env_open(Filename, Flags) ->
 %% additional parameters. See @type env_open_flags.
 %% This wraps the native ham_env_open function.
 -spec env_open(string(), [env_open_flag()],
-         [{atom(), integer() | atom()}]) ->
+       [{atom(), integer() | atom()}]) ->
   {ok, env()} | {error, atom()}.
 env_open(Filename, Flags, Parameters) ->
   env_open_impl(Filename, Flags, Parameters).
@@ -116,9 +119,9 @@ env_open(Filename, Flags, Parameters) ->
 
 
 -type env_create_db_flag() ::
-     undefined
-     | enable_duplicate_keys
-     | record_number.
+   undefined
+   | enable_duplicate_keys
+   | record_number.
 
 %% @doc Creates a new Database in an Environment. Expects a handle for the
 %% Environment and the name of the new Database.
@@ -143,7 +146,7 @@ env_create_db(Env, Dbname, Flags) ->
 %% See @type env_create_db_flag.
 %% This wraps the native ham_env_create_db function.
 -spec env_create_db(env(), integer(), [env_create_db_flag()],
-         [{atom(), integer() | atom()}]) ->
+       [{atom(), integer() | atom()}]) ->
   {ok, db()} | {error, atom()}.
 env_create_db(Env, Dbname, Flags, Parameters) ->
   env_create_db_impl(Env, Dbname, Flags, Parameters).
@@ -151,8 +154,8 @@ env_create_db(Env, Dbname, Flags, Parameters) ->
 
 
 -type env_open_db_flag() ::
-     undefined
-     | read_only.
+   undefined
+   | read_only.
 
 %% @doc Opens an existing Database in an Environment. Expects a handle for the
 %% Environment and the name of the Database.
@@ -177,7 +180,7 @@ env_open_db(Env, Dbname, Flags) ->
 %% See @type env_open_db_flag.
 %% This wraps the native ham_env_open_db function.
 -spec env_open_db(env(), integer(), [env_open_db_flag()],
-         [{atom(), integer() | atom()}]) ->
+       [{atom(), integer() | atom()}]) ->
   {ok, db()} | {error, atom()}.
 env_open_db(Env, Dbname, Flags, Parameters) ->
   env_open_db_impl(Env, Dbname, Flags, Parameters).
@@ -208,18 +211,51 @@ env_erase_db(Env, Dbname) ->
 -spec db_close(db()) ->
   ok | {error, atom()}.
 db_close(Db) ->
-  db_close_impl(Db).
+  ham_nifs:db_close(Db).
 
 
 %% @doc Closes an Environment handle.
 %% This wraps the native ham_env_close function.
 env_close(Env) ->
-  env_close_impl(Env).
+  ham_nifs:env_close(Env).
+
+-type db_insert_flag() ::
+   undefined
+   | overwrite
+   | duplicate.
+
+%% @doc Inserts a new Key/Value pair into the Database.
+%% This wraps the native ham_db_insert function.
+-spec db_insert(db(), binary(), binary()) ->
+  ok | {error, atom()}.
+db_insert(Db, Key, Value) ->
+  db_insert_impl(Db, Key, Value, 0).
+
+%% @doc Inserts a new Key/Value pair into the Database. Accepts additional
+%% flags for the operation.
+%% This wraps the native ham_db_insert function.
+-spec db_insert(db(), binary(), binary(), [db_insert_flag()]) ->
+  ok | {error, atom()}.
+db_insert(Db, Key, Value, Flags) ->
+  db_insert_impl(Db, Key, Value, Flags).
+
+%% @doc Erases a Key/Value pair (including all duplicates) from the Database.
+%% This wraps the native ham_db_erase function.
+-spec db_erase(db(), binary()) ->
+  ok | {error, atom()}.
+db_erase(Db, Key) ->
+  ham_nifs:db_erase(Db, Key).
+
+%% @doc Lookup of a Key; returns the associated value from the Database.
+%% This wraps the native ham_db_find function.
+-spec db_find(db(), binary()) ->
+  {ok, binary()} | {error, atom()}.
+db_find(Db, Key) ->
+  ham_nifs:db_find(Db, Key).
+
 
 %% Private functions
 
-strerror_impl(Status) ->
-  ham_nifs:strerror(Status).
 
 env_create_impl(Filename, Flags, Mode, Parameters) ->
   ham_nifs:env_create(Filename, env_create_flags(Flags, 0), Mode, Parameters).
@@ -239,68 +275,77 @@ env_rename_db_impl(Env, Oldname, Newname) ->
 env_erase_db_impl(Env, Dbname) ->
   ham_nifs:env_erase_db(Env, Dbname).
 
-db_close_impl(Db) ->
-  ham_nifs:db_close(Db).
-
-env_close_impl(Env) ->
-  ham_nifs:env_close(Env).
+db_insert_impl(Db, Key, Value, Flags) ->
+  ham_nifs:db_insert(Db, Key, Value, insert_db_flags(Flags, 0)).
 
 env_create_flags([], Acc) ->
-    Acc;
+  Acc;
 env_create_flags([Flag | Tail], Acc) ->
-    case Flag of
-      undefined ->
-        env_create_flags(Tail, Acc);
-      in_memory ->
-        env_create_flags(Tail, Acc bor 16#00080);
-      enable_fsync ->
-        env_create_flags(Tail, Acc bor 16#00001);
-      disable_mmap ->
-        env_create_flags(Tail, Acc bor 16#00200);
-      cache_unlimited ->
-        env_create_flags(Tail, Acc bor 16#40000);
-      enable_recovery ->
-        env_create_flags(Tail, Acc bor 16#08000)
-    end.
+  case Flag of
+    undefined ->
+      env_create_flags(Tail, Acc);
+    in_memory ->
+      env_create_flags(Tail, Acc bor 16#00080);
+    enable_fsync ->
+      env_create_flags(Tail, Acc bor 16#00001);
+    disable_mmap ->
+      env_create_flags(Tail, Acc bor 16#00200);
+    cache_unlimited ->
+      env_create_flags(Tail, Acc bor 16#40000);
+    enable_recovery ->
+      env_create_flags(Tail, Acc bor 16#08000)
+  end.
 
 env_open_flags([], Acc) ->
-    Acc;
+  Acc;
 env_open_flags([Flag | Tail], Acc) ->
-    case Flag of
-      undefined ->
-        env_open_flags(Tail, Acc);
-      read_only ->
-        env_open_flags(Tail, Acc bor 16#00004);
-      enable_fsync ->
-        env_open_flags(Tail, Acc bor 16#00001);
-      disable_mmap ->
-        env_open_flags(Tail, Acc bor 16#00200);
-      cache_unlimited ->
-        env_open_flags(Tail, Acc bor 16#40000);
-      enable_recovery ->
-        env_open_flags(Tail, Acc bor 16#08000);
-      auto_recovery ->
-        env_open_flags(Tail, Acc bor 16#10000)
-    end.
+  case Flag of
+    undefined ->
+      env_open_flags(Tail, Acc);
+    read_only ->
+      env_open_flags(Tail, Acc bor 16#00004);
+    enable_fsync ->
+      env_open_flags(Tail, Acc bor 16#00001);
+    disable_mmap ->
+      env_open_flags(Tail, Acc bor 16#00200);
+    cache_unlimited ->
+      env_open_flags(Tail, Acc bor 16#40000);
+    enable_recovery ->
+      env_open_flags(Tail, Acc bor 16#08000);
+    auto_recovery ->
+      env_open_flags(Tail, Acc bor 16#10000)
+  end.
 
 env_create_db_flags([], Acc) ->
-    Acc;
+  Acc;
 env_create_db_flags([Flag | Tail], Acc) ->
-    case Flag of
-      undefined ->
-        env_open_flags(Tail, Acc);
-      enable_duplicate_keys ->
-        env_open_flags(Tail, Acc bor 16#04000);
-      record_number ->
-        env_open_flags(Tail, Acc bor 16#02000)
-    end.
+  case Flag of
+    undefined ->
+      env_open_flags(Tail, Acc);
+    enable_duplicate_keys ->
+      env_open_flags(Tail, Acc bor 16#04000);
+    record_number ->
+      env_open_flags(Tail, Acc bor 16#02000)
+  end.
 
 env_open_db_flags([], Acc) ->
-    Acc;
+  Acc;
 env_open_db_flags([Flag | Tail], Acc) ->
-    case Flag of
-      undefined ->
-        env_open_flags(Tail, Acc);
-      read_only ->
-        env_open_flags(Tail, Acc bor 16#00004)
-    end.
+  case Flag of
+    undefined ->
+      env_open_flags(Tail, Acc);
+    read_only ->
+      env_open_flags(Tail, Acc bor 16#00004)
+  end.
+
+insert_db_flags([], Acc) ->
+  Acc;
+insert_db_flags([Flag | Tail], Acc) ->
+  case Flag of
+    undefined ->
+      insert_db_flags(Tail, Acc);
+    overwrite ->
+      insert_db_flags(Tail, Acc bor 16#00001);
+    duplicate ->
+      insert_db_flags(Tail, Acc bor 16#00002)
+  end.

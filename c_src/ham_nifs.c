@@ -413,6 +413,99 @@ ham_nifs_env_rename_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   return (g_atom_ok);
 }
 
+ERL_NIF_TERM
+ham_nifs_db_insert(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  ham_db_t *hdb;
+  ham_key_t key = {0};
+  ham_record_t rec = {0};
+  ham_u32_t flags;
+  ErlNifBinary binkey;
+  ErlNifBinary binrec;
+  ham_status_t st;
+
+  if (argc != 4)
+    return (enif_make_badarg(env));
+  if (!(hdb = (ham_db_t *)term_to_pointer(env, argv[0])))
+    return (enif_make_badarg(env));
+  if (!enif_inspect_binary(env, argv[1], &binkey))
+    return (enif_make_badarg(env));
+  if (!enif_inspect_binary(env, argv[2], &binrec))
+    return (enif_make_badarg(env));
+  if (!enif_get_uint(env, argv[3], &flags))
+    return (enif_make_badarg(env));
+
+  key.data = binkey.data;
+  key.size = binkey.size;
+  rec.data = binrec.data;
+  rec.size = binrec.size;
+
+  st = ham_db_insert(hdb, 0, &key, &rec, flags);
+  if (st)
+    return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
+
+  return (g_atom_ok);
+}
+
+ERL_NIF_TERM
+ham_nifs_db_erase(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  ham_db_t *hdb;
+  ham_key_t key = {0};
+  ErlNifBinary binkey;
+  ham_status_t st;
+
+  if (argc != 2)
+    return (enif_make_badarg(env));
+  if (!(hdb = (ham_db_t *)term_to_pointer(env, argv[0])))
+    return (enif_make_badarg(env));
+  if (!enif_inspect_binary(env, argv[1], &binkey))
+    return (enif_make_badarg(env));
+
+  key.data = binkey.data;
+  key.size = binkey.size;
+
+  st = ham_db_erase(hdb, 0, &key, 0);
+  if (st)
+    return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
+
+  return (g_atom_ok);
+}
+
+ERL_NIF_TERM
+ham_nifs_db_find(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  ham_db_t *hdb;
+  ham_key_t key = {0};
+  ham_record_t rec = {0};
+  ErlNifBinary binkey;
+  ErlNifBinary binrec;
+  ham_status_t st;
+
+  if (argc != 2)
+    return (enif_make_badarg(env));
+  if (!(hdb = (ham_db_t *)term_to_pointer(env, argv[0])))
+    return (enif_make_badarg(env));
+  if (!enif_inspect_binary(env, argv[1], &binkey))
+    return (enif_make_badarg(env));
+
+  key.data = binkey.data;
+  key.size = binkey.size;
+
+  st = ham_db_find(hdb, 0, &key, &rec, 0);
+  if (st)
+    return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
+
+  if (!enif_alloc_binary(rec.size, &binrec))
+    return (enif_make_tuple2(env, g_atom_error,
+                status_to_atom(env, HAM_OUT_OF_MEMORY)));
+
+  memcpy(binrec.data, rec.data, rec.size);
+  binrec.size = rec.size;
+
+  return (enif_make_tuple2(env, g_atom_ok, enif_make_binary(env, &binrec)));
+}
+
 // ok
 ERL_NIF_TERM
 ham_nifs_db_close(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
@@ -470,6 +563,9 @@ static ErlNifFunc ham_nif_funcs[] =
   {"env_open_db", 4, ham_nifs_env_open_db},
   {"env_rename_db", 3, ham_nifs_env_rename_db},
   {"env_erase_db", 2, ham_nifs_env_erase_db},
+  {"db_insert", 4, ham_nifs_db_insert},
+  {"db_erase", 2, ham_nifs_db_erase},
+  {"db_find", 2, ham_nifs_db_find},
   {"db_close", 1, ham_nifs_db_close},
   {"env_close", 1, ham_nifs_env_close}
 };

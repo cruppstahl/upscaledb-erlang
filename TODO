@@ -27,17 +27,29 @@ x in ein neues projekt einchecken
 x ham_parameter_t in env_create, env_open, env_create_db, env_open_db
 x test with in-memory environment
 x run different configurations for the environment
+x run different configurations for the various databases
 
-o run different configurations for the various databases
 o insert/erase/find
+    x implement
+    o run basic tests (insert/find/erase)
+        eqc: store each inserted key/value in an ordmap
     o and overwrite
     o and duplicates
+o use resource for file handles!
 
 o test compilation if eqc is not installed - does it still work?
 o add license headers
+o need samples!
+o improve documentation
 
 o transactions
 o cursor
 
-o need samples!
-
+o new tests:
+    o reopen env while the test proceeds
+    o very large key size, very low page size
+    o perform many inserts/erase
+        o with extkeys + low extkey threshold
+        o with duplicates + low duptable threshold
+    o add transactions/recovery
+    o add simulate system crashes, perform recovery

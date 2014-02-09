@@ -10,6 +10,9 @@
      env_open_db/4,
      env_rename_db/3,
      env_erase_db/2,
+     db_insert/4,
+     db_erase/2,
+     db_find/2,
      db_close/1,
      env_close/1]).
 
@@ -47,6 +50,15 @@ env_rename_db(_Env, _Oldname, _Newname) ->
   throw(?MISSING_NIF).
 
 env_erase_db(_Env, _Dbname) ->
+  throw(?MISSING_NIF).
+
+db_insert(_Db, _Key, _Value, _Flags) ->
+  throw(?MISSING_NIF).
+
+db_erase(_Db, _Key) ->
+  throw(?MISSING_NIF).
+
+db_find(_Db, _Key) ->
   throw(?MISSING_NIF).
 
 db_close(_Db) ->
