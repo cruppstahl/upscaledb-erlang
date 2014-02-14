@@ -7,6 +7,14 @@
 %% @reference See the <a href="www.hamsterdb.com">hamsterdb web page</a> for
 %% more information about hamsterdb, and for reference documentation on the
 %% native C API.
+%%
+%% This program is free software; you can redistribute it and/or modify it
+%% under the terms of the GNU General Public License as published by the
+%% Free Software Foundation; either version 2 of the License, or
+%% (at your option) any later version.
+%%
+%% See files COPYING.* for License information.
+%%
 
 -module(ham).
 -author("Christoph Rupp <chris@crupp.de>").
@@ -229,7 +237,7 @@ env_close(Env) ->
 -spec db_insert(db(), binary(), binary()) ->
   ok | {error, atom()}.
 db_insert(Db, Key, Value) ->
-  db_insert_impl(Db, Key, Value, 0).
+  db_insert_impl(Db, Key, Value, []).
 
 %% @doc Inserts a new Key/Value pair into the Database. Accepts additional
 %% flags for the operation.

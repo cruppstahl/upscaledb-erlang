@@ -1,44 +1,26 @@
 
-x mit nifs anbinden
-    x env_close
-    x db_close
-    x env_rename_db
-    x env_erase_db
-    x env_create
-    x env_open
-    x env_create_db
-    x env_open_db
-
-x einen einfachen quickcheck-testcase machen, damit die dateien wenigstens
-    einmal ausgeführt werden
-    x für create_db
-    x für open_db
-    x für close_db
-    x für erase_db
-    x für rename_db
-    x im rebar beim target "test" ausführen
-
-x dokumentation für edoc einfügen, soweit fertig machen
-
-x in ein neues projekt einchecken
-    x wieder hamsterdb runterladen, bauen (ohne tcmalloc!)
-    x eigenes README mit anleitung und anweisung für LD_LIBRARY_PATH
-
 x ham_parameter_t in env_create, env_open, env_create_db, env_open_db
 x test with in-memory environment
 x run different configurations for the environment
 x run different configurations for the various databases
+x add license headers
 
 o insert/erase/find
     x implement
+========================
     o run basic tests (insert/find/erase)
         eqc: store each inserted key/value in an ordmap
+
+currently i'm fighting with db_insert_command: the binary() generators need
+to create keys/records with a size depending on the database flags and
+parameters (key size, record size). But the database configuration (#dbstate)
+is unknown when the generator is called!
+========================
     o and overwrite
     o and duplicates
 o use resource for file handles!
 
 o test compilation if eqc is not installed - does it still work?
-o add license headers
 o need samples!
 o improve documentation
 

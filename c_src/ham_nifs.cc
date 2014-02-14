@@ -1,3 +1,15 @@
+/*
+ * Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+ *
+ * This program is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License as published by the
+ * Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * See files COPYING.* for License information.
+ *
+ */
+
 #include <string.h>
 #include <stdio.h>
 
@@ -435,10 +447,10 @@ ham_nifs_db_insert(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   if (!enif_get_uint(env, argv[3], &flags))
     return (enif_make_badarg(env));
 
-  key.data = binkey.data;
   key.size = binkey.size;
-  rec.data = binrec.data;
+  key.data = binkey.size ? binkey.data : 0;
   rec.size = binrec.size;
+  rec.data = binrec.size ? binrec.data : 0;
 
   st = ham_db_insert(hdb, 0, &key, &rec, flags);
   if (st)
@@ -554,6 +566,8 @@ on_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
   return (0);
 }
 
+extern "C" {
+
 static ErlNifFunc ham_nif_funcs[] =
 {
   {"strerror", 1, ham_nifs_strerror},
@@ -572,3 +586,4 @@ static ErlNifFunc ham_nif_funcs[] =
 
 ERL_NIF_INIT(ham_nifs, ham_nif_funcs, on_load, NULL, NULL, NULL);
 
+}; // extern "C"
