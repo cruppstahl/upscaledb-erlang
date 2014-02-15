@@ -3,6 +3,7 @@ priv
 *.db
 *.db.*
 erl_crash.dump
+.eunit
 doc
 .eqc-info
 *.eqc

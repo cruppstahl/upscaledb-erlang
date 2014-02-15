@@ -13,6 +13,7 @@
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eqc/include/eqc_statem.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -define(HAM_TYPE_BINARY, 0).
 -define(HAM_TYPE_CUSTOM, 1).
@@ -39,8 +40,12 @@
                 closed_dbs = [] % list of closed databases [{name, #dbstate}]
                 }).
 
-test() ->
+run_test_() ->
+  {timeout, 60, [fun() -> run() end]}.
+
+run() ->
   eqc:module(?MODULE).
+
 
 dbname() ->
   choose(1, 5).

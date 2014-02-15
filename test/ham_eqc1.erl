@@ -13,6 +13,7 @@
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eqc/include/eqc_statem.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -define(HAM_TYPE_BINARY, 0).
 -define(HAM_TYPE_CUSTOM, 1).
@@ -33,7 +34,10 @@
                 databases = []  % list of existing databases [name]
                 }).
 
-test() ->
+run_test_() ->
+  {timeout, 60, [fun() -> run() end]}.
+
+run() ->
   eqc:module(?MODULE).
 
 dbname() ->

@@ -13,6 +13,7 @@ dialyzer:
 	dialyzer -Wrace_conditions --src src
 
 test:
+	./rebar test
 	LD_LIBRARY_PATH=priv erl -pa ebin -s ham_eqc2 test -s init stop
 
 benchmark: compile

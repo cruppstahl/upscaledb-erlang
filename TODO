@@ -5,8 +5,15 @@ x run different configurations for the environment
 x run different configurations for the various databases
 x add license headers
 
-o insert/erase/find
-    x implement
+x insert/erase/find
+x test compilation if eqc is not installed - does it still work?
+o use resource for handles!
+o transactions
+o cursor
+o need samples!
+o improve documentation
+
+o new tests:
 ========================
     o run basic tests (insert/find/erase)
         eqc: store each inserted key/value in an ordmap
@@ -15,19 +22,9 @@ currently i'm fighting with db_insert_command: the binary() generators need
 to create keys/records with a size depending on the database flags and
 parameters (key size, record size). But the database configuration (#dbstate)
 is unknown when the generator is called!
-========================
     o and overwrite
     o and duplicates
-o use resource for file handles!
-
-o test compilation if eqc is not installed - does it still work?
-o need samples!
-o improve documentation
-
-o transactions
-o cursor
-
-o new tests:
+========================
     o reopen env while the test proceeds
     o very large key size, very low page size
     o perform many inserts/erase
