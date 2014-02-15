@@ -1,3 +1,5 @@
+.PHONY: test
+
 all: compile
 
 compile:
@@ -9,12 +11,12 @@ clean:
 doc:
 	./rebar doc
 
-dialyzer:
+dialyzer: compile
 	dialyzer -Wrace_conditions --src src
 
-test:
-	./rebar test
-	LD_LIBRARY_PATH=priv erl -pa ebin -s ham_eqc2 test -s init stop
+test eunit: compile
+	./rebar eunit
+	# LD_LIBRARY_PATH=priv erl -pa ebin -s ham_eqc2 test -s init stop
 
-benchmark: compile
-	@erl -noshell -pa ebin -eval 'hammy_bench:start().' -s init stop
+shell: compile
+	LD_LIBRARY_PATH=priv erl -pa ebin
