@@ -13,7 +13,6 @@
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eqc/include/eqc_statem.hrl").
--include_lib("eunit/include/eunit.hrl").
 
 -define(HAM_TYPE_BINARY, 0).
 -define(HAM_TYPE_CUSTOM, 1).
@@ -33,9 +32,6 @@
                 open = [],      % list of open databases [{name, handle}]
                 databases = []  % list of existing databases [name]
                 }).
-
-run_test_() ->
-  {timeout, 60, [fun() -> run() end]}.
 
 run() ->
   eqc:module(?MODULE).
@@ -137,12 +133,16 @@ open_db_post(State, [_EnvHandle, DbName, _DbFlags], Result) ->
   end.
 
 open_db_next(State, Result, [_EnvHandle, DbName, _DbFlags]) ->
-  case (lists:member(DbName, State#state.databases) == true
-          andalso lists:keymember(DbName, 1, State#state.open) == false) of
+  case (lists:keymember(DbName, 1, State#state.open)) of
     true ->
-      State#state{open = State#state.open ++ [{DbName, Result}]};
+      State;
     false ->
-      State
+      case (lists:member(DbName, State#state.databases)) of
+        true ->
+          State#state{open = State#state.open ++ [{DbName, Result}]};
+        false ->
+          State
+      end
   end.
 
 % ham_env_erase_db ---------------------------------
@@ -198,29 +198,34 @@ rename_db_next(State, _Result, [_EnvHandle, OldName, NewName]) ->
 
 % ham_env_close_db ---------------------------------
 
-dbhandle(OpenList) ->
-  elements([H || {_N, H} <- OpenList]).
+dbhandle(State) ->
+  elements(State#state.open).
 
 db_close_pre(State) ->
   State#state.open /= [].
 
 db_close_command(State) ->
-  {call, ?MODULE, db_close, [dbhandle(State#state.open)]}.
+  {call, ?MODULE, db_close, [dbhandle(State)]}.
 
-db_close(DbHandle) ->
-  ham:db_close(DbHandle).
+db_close({_DbName, DbHandle}) ->
+  % silently ignore error messages
+  case DbHandle of
+    {error, _} ->
+      ok;
+    _ ->
+      ham:db_close(DbHandle)
+  end.
 
-db_close_post(_State, [_DbHandle], Result) ->
+db_close_post(_State, [{_DbName, _DbHandle}], Result) ->
   Result == ok.
 
-db_close_next(State, _Result, [DbHandle]) ->
-  {DbName, DbHandle} = lists:keyfind(DbHandle, 2, State#state.open),
+db_close_next(State, _Result, [{DbName, _DbHandle}]) ->
   case lists:member(in_memory, State#state.env_flags) of
     true ->
-      State#state{open = lists:keydelete(DbHandle, 2, State#state.open),
+      State#state{open = lists:keydelete(DbName, 1, State#state.open),
                   databases = lists:delete(DbName, State#state.databases)};
     false ->
-      State#state{open = lists:keydelete(DbHandle, 2, State#state.open)}
+      State#state{open = lists:keydelete(DbName, 1, State#state.open)}
   end.
 
 
@@ -244,7 +249,7 @@ prop_ham() ->
       ?FORALL(Cmds, commands(?MODULE, #state{env_flags = EnvFlags,
                                            env_parameters = EnvParams}),
         begin
-          io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
+          %io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
           {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
                                          EnvParams),
           {History, State, Result} = run_commands(?MODULE, Cmds,

@@ -15,12 +15,11 @@ x transactions
         x move macros (HAM_TYPE_UINT32) into .hrl file!
 x cursors
     x tests/sample
-=================================
-o need samples! (samples/readme.txt -> link to ham_tests.erl)
-=================================
-o improve documentation
-    (i.e. parameter names for ham_env_create etc)
-    move -spec() to hrl, use @spec and @type instead?
+x need samples! (samples/readme.txt -> link to ham_tests.erl)
+x improve documentation
+o README
+
+
 
 o new quickcheck tests:
 ========================

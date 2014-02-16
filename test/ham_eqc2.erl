@@ -13,7 +13,6 @@
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eqc/include/eqc_statem.hrl").
--include_lib("eunit/include/eunit.hrl").
 
 -include("include/ham.hrl").
 
@@ -30,9 +29,6 @@
                 open_dbs = [], % list of open databases [{name, #dbstate}]
                 closed_dbs = [] % list of closed databases [{name, #dbstate}]
                 }).
-
-run_test_() ->
-  {timeout, 120, [fun() -> run() end]}.
 
 run() ->
   eqc:module(?MODULE).

@@ -4,8 +4,9 @@
 %%
 %% @doc hamsterdb-erlang is an erlang driver for hamsterdb
 %% (http://hamsterdb.com).
-%% @reference See the <a href="www.hamsterdb.com">hamsterdb web page</a> for
-%% more information about hamsterdb, and for reference documentation on the
+%% @headerfile "../include/ham.hrl"
+%% @reference See the <a href="http://www.hamsterdb.com">hamsterdb web page</a>
+%% for more information about hamsterdb, and for reference documentation on the
 %% native C API.
 %%
 %% This program is free software; you can redistribute it and/or modify it
@@ -270,28 +271,28 @@ db_find(Db, Txn, Key) ->
 
 
 
-%% @doc Begins a new Transaction
+%% @doc Begins a new Transaction.
 %% This wraps the native ham_txn_begin function.
 -spec txn_begin(env()) ->
   {ok, binary()} | {error, atom()}.
 txn_begin(Env) ->
   ham_nifs:txn_begin(Env, 0).
 
-%% @doc Begins a new Transaction
+%% @doc Begins a new Transaction.
 %% This wraps the native ham_txn_begin function.
 -spec txn_begin(env(), [txn_begin_flag()]) ->
   {ok, binary()} | {error, atom()}.
 txn_begin(Env, Flags) ->
   ham_nifs:txn_begin(Env, txn_begin_flags(Flags, 0)).
 
-%% @doc Aborts a running Transaction
+%% @doc Aborts a running Transaction.
 %% This wraps the native ham_txn_abort function.
 -spec txn_abort(txn()) ->
   ok | {error, atom()}.
 txn_abort(Txn) ->
   ham_nifs:txn_abort(Txn).
 
-%% @doc Commits a running Transaction
+%% @doc Commits a running Transaction.
 %% This wraps the native ham_txn_commit function.
 -spec txn_commit(txn()) ->
   ok | {error, atom()}.
@@ -314,7 +315,7 @@ cursor_create(Db) ->
 cursor_create(Db, Txn) ->
   ham_nifs:cursor_create(Db, Txn).
 
-%% @doc Clones a Cursor
+%% @doc Clones a Cursor.
 %% This wraps the native ham_cursor_clone function.
 -spec cursor_clone(cursor()) ->
   ok | {error, atom()}.

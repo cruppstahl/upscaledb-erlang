@@ -1,13 +1,10 @@
-hamsterdb-erlang 2.1.4                            Sun Aug 11 21:20:54 CEST 2013
+hamsterdb-erlang 0.0.1                            So 16. Feb 21:49:05 CET 2014
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
 hamsterdb-erlang
 ================
 
 An erlang driver for hamsterdb.
-
-This is work in progress. Will be ready soon.
-================
 
 == Introduction
 
@@ -43,8 +40,8 @@ can find it here:
 
     http://hamsterdb.com/scripts/html_www/index.html
 
-Also, you will find samples in the "samples" directory. They should provide a
-good starting point.
+Also, you will find several samples in `src/ham_tests.erl`. They should
+provide a good starting point.
 
 == Licensing
 
