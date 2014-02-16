@@ -28,7 +28,17 @@
      txn_begin/2,
      txn_abort/1,
      txn_commit/1,
-     env_close/1]).
+     env_close/1,
+     cursor_create/2,
+     cursor_clone/1, 
+     cursor_move/2, 
+     cursor_overwrite/2, 
+     cursor_find/2,
+     cursor_insert/4,
+     cursor_erase/1, 
+     cursor_get_duplicate_count/1,
+     cursor_get_record_size/1,
+     cursor_close/1]).
 
 -define(MISSING_NIF, {error, missing_nif}).
 -define(NIF_API_VERSION, 1).
@@ -88,5 +98,35 @@ txn_abort(_Txn) ->
   throw(?MISSING_NIF).
 
 env_close(_Env) ->
+  throw(?MISSING_NIF).
+
+cursor_create(_Env, _Txn) ->
+  throw(?MISSING_NIF).
+
+cursor_clone(_Cursor) ->
+  throw(?MISSING_NIF).
+
+cursor_move(_Cursor, _Flags) ->
+  throw(?MISSING_NIF).
+
+cursor_overwrite(_Cursor, _Record) ->
+  throw(?MISSING_NIF).
+
+cursor_find(_Cursor, _Key) ->
+  throw(?MISSING_NIF).
+
+cursor_insert(_Cursor, _Key, _Record, _Flags) ->
+  throw(?MISSING_NIF).
+
+cursor_erase(_Cursor) ->
+  throw(?MISSING_NIF).
+
+cursor_get_duplicate_count(_Cursor) ->
+  throw(?MISSING_NIF).
+
+cursor_get_record_size(_Cursor) ->
+  throw(?MISSING_NIF).
+
+cursor_close(_Cursor) ->
   throw(?MISSING_NIF).
 

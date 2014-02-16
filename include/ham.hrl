@@ -21,6 +21,7 @@
 -opaque env() :: term().
 -opaque db() :: term().
 -opaque txn() :: term().
+-opaque cursor() :: term().
 
 -type env_create_flag() ::
    undefined
@@ -59,4 +60,22 @@
    undefined
    | temporary
    | read_only.
+
+-type cursor_move_flag() ::
+   undefined
+   | first
+   | last
+   | next
+   | previous
+   | skip_duplicates
+   | only_duplicates.
+
+-type cursor_insert_flag() ::
+   undefined
+   | overwrite
+   | duplicate
+   | duplicate_insert_before
+   | duplicate_insert_after
+   | duplicate_insert_first
+   | duplicate_insert_last.
 

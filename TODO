@@ -13,16 +13,16 @@ x transactions
     x nifs are missing
     x tests/sample
         x move macros (HAM_TYPE_UINT32) into .hrl file!
-=================================
-o cursors
-    o tests/sample
+x cursors
+    x tests/sample
 =================================
 o need samples! (samples/readme.txt -> link to ham_tests.erl)
+=================================
 o improve documentation
     (i.e. parameter names for ham_env_create etc)
     move -spec() to hrl, use @spec and @type instead?
 
-o new tests:
+o new quickcheck tests:
 ========================
     o run basic tests (insert/find/erase)
         eqc: store each inserted key/value in an ordmap

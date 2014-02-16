@@ -32,7 +32,7 @@
                 }).
 
 run_test_() ->
-  {timeout, 60, [fun() -> run() end]}.
+  {timeout, 120, [fun() -> run() end]}.
 
 run() ->
   eqc:module(?MODULE).

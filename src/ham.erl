@@ -34,6 +34,16 @@
    txn_begin/1, txn_begin/2,
    txn_abort/1,
    txn_commit/1,
+   cursor_create/1, cursor_create/2,
+   cursor_clone/1, 
+   cursor_move/2, 
+   cursor_overwrite/2, 
+   cursor_find/2,
+   cursor_insert/3, cursor_insert/4,
+   cursor_erase/1, 
+   cursor_get_duplicate_count/1,
+   cursor_get_record_size/1,
+   cursor_close/1,
    env_close/1]).
 
 
@@ -288,6 +298,95 @@ txn_abort(Txn) ->
 txn_commit(Txn) ->
   ham_nifs:txn_commit(Txn).
 
+
+
+%% @doc Creates a new Cursor for traversing a Database.
+%% This wraps the native ham_cursor_create function.
+-spec cursor_create(db()) ->
+  ok | {error, atom()}.
+cursor_create(Db) ->
+  ham_nifs:cursor_create(Db, undefined).
+
+%% @doc Creates a new Cursor for traversing a Database in a Transaction.
+%% This wraps the native ham_cursor_create function.
+-spec cursor_create(db(), txn()) ->
+  ok | {error, atom()}.
+cursor_create(Db, Txn) ->
+  ham_nifs:cursor_create(Db, Txn).
+
+%% @doc Clones a Cursor
+%% This wraps the native ham_cursor_clone function.
+-spec cursor_clone(cursor()) ->
+  ok | {error, atom()}.
+cursor_clone(Cursor) ->
+  ham_nifs:cursor_clone(Cursor).
+
+%% @doc Moves a Cursor in the direction specified in the flags; returns
+%% Key and Record.
+%% This wraps the native ham_cursor_move function.
+-spec cursor_move(cursor(), [cursor_move_flag()]) ->
+  {ok, binary(), binary()} | {error, atom()}.
+cursor_move(Cursor, Flags) ->
+  ham_nifs:cursor_move(Cursor, cursor_move_flags(Flags, 0)).
+
+%% @doc Overwrites the Record of the Cursor.
+%% This wraps the native ham_cursor_overwrite function.
+-spec cursor_overwrite(cursor(), binary()) ->
+  ok | {error, atom()}.
+cursor_overwrite(Cursor, Record) ->
+  ham_nifs:cursor_overwrite(Cursor, Record).
+
+%% @doc Performs a lookup and points the Cursor to the found key. Returns
+%% the Record. This wraps the native ham_cursor_find function.
+-spec cursor_find(cursor(), binary()) ->
+  {ok, binary()} | {error, atom()}.
+cursor_find(Cursor, Key) ->
+  ham_nifs:cursor_find(Cursor, Key).
+
+%% @doc Inserts a Key/Record pair into the Database and points the Cursor
+%% to the inserted Key.
+%% This wraps the native ham_cursor_insert function.
+-spec cursor_insert(cursor(), binary(), binary()) ->
+  ok | {error, atom()}.
+cursor_insert(Cursor, Key, Record) ->
+  ham_nifs:cursor_insert(Cursor, Key, Record, 0).
+
+%% @doc Inserts a Key/Record pair into the Database and points the Cursor
+%% to the inserted Key. Supports additional flags.
+%% This wraps the native ham_cursor_insert function.
+-spec cursor_insert(cursor(), binary(), binary(), [cursor_insert_flag()]) ->
+  ok | {error, atom()}.
+cursor_insert(Cursor, Key, Record, Flags) ->
+  ham_nifs:cursor_insert(Cursor, Key, Record, cursor_insert_flags(Flags, 0)).
+
+%% @doc Erases the current Key/Record pair.
+%% This wraps the native ham_cursor_erase function.
+-spec cursor_erase(cursor()) ->
+  ok | {error, atom()}.
+cursor_erase(Cursor) ->
+  ham_nifs:cursor_erase(Cursor).
+
+%% @doc Returns the number of duplicate keys.
+%% This wraps the native ham_cursor_get_duplicate_count function.
+-spec cursor_get_duplicate_count(cursor()) ->
+  {ok, integer()} | {error, atom()}.
+cursor_get_duplicate_count(Cursor) ->
+  ham_nifs:cursor_get_duplicate_count(Cursor).
+
+%% @doc Returns the record size of the current key.
+%% This wraps the native ham_cursor_get_record_size function.
+-spec cursor_get_record_size(cursor()) ->
+  {ok, integer()} | {error, atom()}.
+cursor_get_record_size(Cursor) ->
+  ham_nifs:cursor_get_record_size(Cursor).
+
+%% @doc Closes the Cursor.
+%% This wraps the native ham_cursor_close function.
+-spec cursor_close(cursor()) ->
+  ok | {error, atom()}.
+cursor_close(Cursor) ->
+  ham_nifs:cursor_close(Cursor).
+
 %% Private functions
 
 env_create_impl(Filename, Flags, Mode, Parameters) ->
@@ -391,4 +490,44 @@ txn_begin_flags([Flag | Tail], Acc) ->
       txn_begin_flags(Tail, Acc bor 16#00002);
     read_only ->
       txn_begin_flags(Tail, Acc bor 16#00001)
+  end.
+
+cursor_move_flags([], Acc) ->
+  Acc;
+cursor_move_flags([Flag | Tail], Acc) ->
+  case Flag of
+    undefined ->
+      cursor_move_flags(Tail, Acc);
+    first ->
+      cursor_move_flags(Tail, Acc bor 16#0001);
+    last ->
+      cursor_move_flags(Tail, Acc bor 16#0002);
+    next ->
+      cursor_move_flags(Tail, Acc bor 16#0004);
+    previous ->
+      cursor_move_flags(Tail, Acc bor 16#0008);
+    skip_duplicates ->
+      cursor_move_flags(Tail, Acc bor 16#0010);
+    only_duplicates ->
+      cursor_move_flags(Tail, Acc bor 16#0020)
+  end.
+
+cursor_insert_flags([], Acc) ->
+  Acc;
+cursor_insert_flags([Flag | Tail], Acc) ->
+  case Flag of
+    undefined ->
+      cursor_insert_flags(Tail, Acc);
+    overwrite ->
+      cursor_insert_flags(Tail, Acc bor 16#0001);
+    duplicate ->
+      cursor_insert_flags(Tail, Acc bor 16#0002);
+    duplicate_insert_before ->
+      cursor_insert_flags(Tail, Acc bor 16#0004);
+    duplicate_insert_after ->
+      cursor_insert_flags(Tail, Acc bor 16#0008);
+    duplicate_insert_first ->
+      cursor_insert_flags(Tail, Acc bor 16#0010);
+    duplicate_insert_last ->
+      cursor_insert_flags(Tail, Acc bor 16#0020)
   end.

@@ -17,7 +17,8 @@ run_test_() ->
   {timeout, 60, [
     ?_test(db1()),
     ?_test(env1()),
-    ?_test(txn1())
+    ?_test(txn1()),
+    ?_test(cursor1())
    ]}.
 
 %%
@@ -118,6 +119,54 @@ txn1() ->
   ?assertEqual({error, key_not_found}, ham:db_find(Db1, <<"bar3">>)),
 
   %% Close the Database and the Environment
+  ok = ham:db_close(Db1),
+  ok = ham:env_close(Env1),
+  true.
+
+%%
+%% This test demonstrates how to use Cursors. It inserts key/value pairs and
+%% then traverses from both directions.
+%%
+cursor1() ->
+  %% First step: create a new Environment
+  {ok, Env1} = ham:env_create("test.db", [enable_transactions]),
+  %% Then create a Databases in this Environment
+  {ok, Db1} = ham:env_create_db(Env1, 1),
+  %% And a Cursor for this Database
+  {ok, Cursor1} = ham:cursor_create(Db1),
+  %% Insert a few key/value pairs with this Cursor (we could use
+  %% ham:db_insert() as well)
+  ok = ham:cursor_insert(Cursor1, <<"foo1">>, <<"value1">>),
+  ok = ham:cursor_insert(Cursor1, <<"foo2">>, <<"value2">>),
+  ok = ham:cursor_insert(Cursor1, <<"foo3">>, <<"value3">>),
+  ok = ham:cursor_insert(Cursor1, <<"foo4">>, <<"value4">>),
+  ok = ham:cursor_insert(Cursor1, <<"foo5">>, <<"value5">>),
+  %% Now traverse from beginning to the end
+  {ok, <<"foo1">>, <<"value1">>} = ham:cursor_move(Cursor1, [first]),
+  {ok, <<"foo2">>, <<"value2">>} = ham:cursor_move(Cursor1, [next]),
+  {ok, <<"foo3">>, <<"value3">>} = ham:cursor_move(Cursor1, [next]),
+  {ok, <<"foo4">>, <<"value4">>} = ham:cursor_move(Cursor1, [next]),
+  {ok, <<"foo5">>, <<"value5">>} = ham:cursor_move(Cursor1, [next]),
+  {error, key_not_found} = ham:cursor_move(Cursor1, [next]),
+  %% and backwards
+  {ok, <<"foo5">>, <<"value5">>} = ham:cursor_move(Cursor1, [last]),
+  {ok, <<"foo4">>, <<"value4">>} = ham:cursor_move(Cursor1, [previous]),
+  {ok, <<"foo3">>, <<"value3">>} = ham:cursor_move(Cursor1, [previous]),
+  {ok, <<"foo2">>, <<"value2">>} = ham:cursor_move(Cursor1, [previous]),
+  {ok, <<"foo1">>, <<"value1">>} = ham:cursor_move(Cursor1, [previous]),
+  {error, key_not_found} = ham:cursor_move(Cursor1, [previous]),
+
+  %% Get the record size
+  {ok, <<"foo1">>, <<"value1">>} = ham:cursor_move(Cursor1, [first]),
+  {ok, 6} = ham:cursor_get_record_size(Cursor1),
+  %% "foo1" has one record assigned
+  {ok, 1} = ham:cursor_get_duplicate_count(Cursor1),
+  %% Now delete "foo1"
+  ok = ham:cursor_erase(Cursor1),
+  {ok, <<"foo2">>, <<"value2">>} = ham:cursor_move(Cursor1, [first]),
+
+  %% Clean up
+  ok = ham:cursor_close(Cursor1),
   ok = ham:db_close(Db1),
   ok = ham:env_close(Env1),
   true.
