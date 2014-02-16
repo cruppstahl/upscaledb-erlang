@@ -21,10 +21,13 @@
      env_open_db/4,
      env_rename_db/3,
      env_erase_db/2,
-     db_insert/4,
-     db_erase/2,
-     db_find/2,
+     db_insert/5,
+     db_erase/3,
+     db_find/3,
      db_close/1,
+     txn_begin/2,
+     txn_abort/1,
+     txn_commit/1,
      env_close/1]).
 
 -define(MISSING_NIF, {error, missing_nif}).
@@ -63,16 +66,25 @@ env_rename_db(_Env, _Oldname, _Newname) ->
 env_erase_db(_Env, _Dbname) ->
   throw(?MISSING_NIF).
 
-db_insert(_Db, _Key, _Value, _Flags) ->
+db_insert(_Db, _Txn, _Key, _Value, _Flags) ->
   throw(?MISSING_NIF).
 
-db_erase(_Db, _Key) ->
+db_erase(_Db, _Txn, _Key) ->
   throw(?MISSING_NIF).
 
-db_find(_Db, _Key) ->
+db_find(_Db, _Txn, _Key) ->
   throw(?MISSING_NIF).
 
 db_close(_Db) ->
+  throw(?MISSING_NIF).
+
+txn_begin(_Env, _Flags) ->
+  throw(?MISSING_NIF).
+
+txn_commit(_Txn) ->
+  throw(?MISSING_NIF).
+
+txn_abort(_Txn) ->
   throw(?MISSING_NIF).
 
 env_close(_Env) ->

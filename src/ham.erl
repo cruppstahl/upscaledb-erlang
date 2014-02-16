@@ -15,9 +15,10 @@
 %%
 %% See files COPYING.* for License information.
 %%
-
 -module(ham).
 -author("Christoph Rupp <chris@crupp.de>").
+
+-include("include/ham.hrl").
 
 -export([strerror/1,
    env_create/1, env_create/2, env_create/3, env_create/4,
@@ -26,14 +27,15 @@
    env_open_db/2, env_open_db/3, env_open_db/4,
    env_rename_db/3,
    env_erase_db/2,
-   db_insert/3, db_insert/4,
-   db_erase/2,
-   db_find/2,
+   db_insert/3, db_insert/4, db_insert/5,
+   db_erase/2, db_erase/3,
+   db_find/2, db_find/3,
    db_close/1,
+   txn_begin/1, txn_begin/2,
+   txn_abort/1,
+   txn_commit/1,
    env_close/1]).
 
--opaque env() :: term().
--opaque db() :: term().
 
 
 %% @doc Translates a hamsterdb status code to a descriptive error string.
@@ -44,14 +46,6 @@ strerror(Status) ->
   ham_nifs:strerror(Status).
 
 
-
--type env_create_flag() ::
-   undefined
-   | in_memory
-   | enable_fsync
-   | disable_mmap
-   | cache_unlimited
-   | enable_recovery.
 
 %% @doc Creates a new Environment. Expects a filename for the new
 %% Environment.
@@ -90,15 +84,6 @@ env_create(Filename, Flags, Mode, Parameters) ->
 
 
 
--type env_open_flag() ::
-   undefined
-   | read_only
-   | enable_fsync
-   | disable_mmap
-   | cache_unlimited
-   | enable_recovery
-   | auto_recovery.
-
 %% @doc Opens an existing Environment. Expects a filename.
 %% This wraps the native ham_env_open function.
 -spec env_open(string()) ->
@@ -125,11 +110,6 @@ env_open(Filename, Flags, Parameters) ->
 
 
 
-
--type env_create_db_flag() ::
-   undefined
-   | enable_duplicate_keys
-   | record_number.
 
 %% @doc Creates a new Database in an Environment. Expects a handle for the
 %% Environment and the name of the new Database.
@@ -160,10 +140,6 @@ env_create_db(Env, Dbname, Flags, Parameters) ->
   env_create_db_impl(Env, Dbname, Flags, Parameters).
 
 
-
--type env_open_db_flag() ::
-   undefined
-   | read_only.
 
 %% @doc Opens an existing Database in an Environment. Expects a handle for the
 %% Environment and the name of the Database.
@@ -201,7 +177,7 @@ env_open_db(Env, Dbname, Flags, Parameters) ->
 -spec env_rename_db(env(), integer(), integer()) ->
   ok | {error, atom()}.
 env_rename_db(Env, Oldname, Newname) ->
-  env_rename_db_impl(Env, Oldname, Newname).
+  ham_nifs:env_rename_db(Env, Oldname, Newname).
 
 
 
@@ -211,7 +187,8 @@ env_rename_db(Env, Oldname, Newname) ->
 -spec env_erase_db(env(), integer()) ->
   ok | {error, atom()}.
 env_erase_db(Env, Dbname) ->
-  env_erase_db_impl(Env, Dbname).
+  ham_nifs:env_erase_db(Env, Dbname).
+
 
 
 %% @doc Closes a Database handle.
@@ -222,48 +199,96 @@ db_close(Db) ->
   ham_nifs:db_close(Db).
 
 
+
 %% @doc Closes an Environment handle.
 %% This wraps the native ham_env_close function.
 env_close(Env) ->
   ham_nifs:env_close(Env).
 
--type db_insert_flag() ::
-   undefined
-   | overwrite
-   | duplicate.
+
 
 %% @doc Inserts a new Key/Value pair into the Database.
 %% This wraps the native ham_db_insert function.
 -spec db_insert(db(), binary(), binary()) ->
   ok | {error, atom()}.
 db_insert(Db, Key, Value) ->
-  db_insert_impl(Db, Key, Value, []).
+  db_insert_impl(Db, undefined, Key, Value, []).
+
+%% @doc Inserts a new Key/Value pair into the Database in a Transaction.
+%% This wraps the native ham_db_insert function.
+-spec db_insert(db(), txn() | undefined, binary(), binary()) ->
+  ok | {error, atom()}.
+db_insert(Db, Txn, Key, Value) ->
+  db_insert_impl(Db, Txn, Key, Value, []).
 
 %% @doc Inserts a new Key/Value pair into the Database. Accepts additional
 %% flags for the operation.
 %% This wraps the native ham_db_insert function.
--spec db_insert(db(), binary(), binary(), [db_insert_flag()]) ->
+-spec db_insert(db(), txn() | undefined, binary(),
+                binary(), [db_insert_flag()]) ->
   ok | {error, atom()}.
-db_insert(Db, Key, Value, Flags) ->
-  db_insert_impl(Db, Key, Value, Flags).
+db_insert(Db, Txn, Key, Value, Flags) ->
+  db_insert_impl(Db, Txn, Key, Value, Flags).
 
 %% @doc Erases a Key/Value pair (including all duplicates) from the Database.
 %% This wraps the native ham_db_erase function.
 -spec db_erase(db(), binary()) ->
   ok | {error, atom()}.
 db_erase(Db, Key) ->
-  ham_nifs:db_erase(Db, Key).
+  ham_nifs:db_erase(Db, undefined, Key).
+
+%% @doc Erases a Key/Value pair (including all duplicates) from the Database.
+%% This wraps the native ham_db_erase function.
+-spec db_erase(db(), txn() | undefined, binary()) ->
+  ok | {error, atom()}.
+db_erase(Db, Txn, Key) ->
+  ham_nifs:db_erase(Db, Txn, Key).
 
 %% @doc Lookup of a Key; returns the associated value from the Database.
 %% This wraps the native ham_db_find function.
 -spec db_find(db(), binary()) ->
   {ok, binary()} | {error, atom()}.
 db_find(Db, Key) ->
-  ham_nifs:db_find(Db, Key).
+  ham_nifs:db_find(Db, undefined, Key).
 
+%% @doc Lookup of a Key; returns the associated value from the Database.
+%% This wraps the native ham_db_find function.
+-spec db_find(db(), txn() | undefined, binary()) ->
+  {ok, binary()} | {error, atom()}.
+db_find(Db, Txn, Key) ->
+  ham_nifs:db_find(Db, Txn, Key).
+
+
+
+%% @doc Begins a new Transaction
+%% This wraps the native ham_txn_begin function.
+-spec txn_begin(env()) ->
+  {ok, binary()} | {error, atom()}.
+txn_begin(Env) ->
+  ham_nifs:txn_begin(Env, 0).
+
+%% @doc Begins a new Transaction
+%% This wraps the native ham_txn_begin function.
+-spec txn_begin(env(), [txn_begin_flag()]) ->
+  {ok, binary()} | {error, atom()}.
+txn_begin(Env, Flags) ->
+  ham_nifs:txn_begin(Env, txn_begin_flags(Flags, 0)).
+
+%% @doc Aborts a running Transaction
+%% This wraps the native ham_txn_abort function.
+-spec txn_abort(txn()) ->
+  ok | {error, atom()}.
+txn_abort(Txn) ->
+  ham_nifs:txn_abort(Txn).
+
+%% @doc Commits a running Transaction
+%% This wraps the native ham_txn_commit function.
+-spec txn_commit(txn()) ->
+  ok | {error, atom()}.
+txn_commit(Txn) ->
+  ham_nifs:txn_commit(Txn).
 
 %% Private functions
-
 
 env_create_impl(Filename, Flags, Mode, Parameters) ->
   ham_nifs:env_create(Filename, env_create_flags(Flags, 0), Mode, Parameters).
@@ -277,14 +302,8 @@ env_create_db_impl(Env, Dbname, Flags, Parameters) ->
 env_open_db_impl(Env, Dbname, Flags, Parameters) ->
   ham_nifs:env_open_db(Env, Dbname, env_open_db_flags(Flags, 0), Parameters).
 
-env_rename_db_impl(Env, Oldname, Newname) ->
-  ham_nifs:env_rename_db(Env, Oldname, Newname).
-
-env_erase_db_impl(Env, Dbname) ->
-  ham_nifs:env_erase_db(Env, Dbname).
-
-db_insert_impl(Db, Key, Value, Flags) ->
-  ham_nifs:db_insert(Db, Key, Value, insert_db_flags(Flags, 0)).
+db_insert_impl(Db, Txn, Key, Value, Flags) ->
+  ham_nifs:db_insert(Db, Txn, Key, Value, insert_db_flags(Flags, 0)).
 
 env_create_flags([], Acc) ->
   Acc;
@@ -301,7 +320,9 @@ env_create_flags([Flag | Tail], Acc) ->
     cache_unlimited ->
       env_create_flags(Tail, Acc bor 16#40000);
     enable_recovery ->
-      env_create_flags(Tail, Acc bor 16#08000)
+      env_create_flags(Tail, Acc bor 16#08000);
+    enable_transactions ->
+      env_create_flags(Tail, Acc bor 16#20000)
   end.
 
 env_open_flags([], Acc) ->
@@ -321,7 +342,9 @@ env_open_flags([Flag | Tail], Acc) ->
     enable_recovery ->
       env_open_flags(Tail, Acc bor 16#08000);
     auto_recovery ->
-      env_open_flags(Tail, Acc bor 16#10000)
+      env_open_flags(Tail, Acc bor 16#10000);
+    enable_transactions ->
+      env_open_flags(Tail, Acc bor 16#20000)
   end.
 
 env_create_db_flags([], Acc) ->
@@ -356,4 +379,16 @@ insert_db_flags([Flag | Tail], Acc) ->
       insert_db_flags(Tail, Acc bor 16#00001);
     duplicate ->
       insert_db_flags(Tail, Acc bor 16#00002)
+  end.
+
+txn_begin_flags([], Acc) ->
+  Acc;
+txn_begin_flags([Flag | Tail], Acc) ->
+  case Flag of
+    undefined ->
+      txn_begin_flags(Tail, Acc);
+    temporary ->
+      txn_begin_flags(Tail, Acc bor 16#00002);
+    read_only ->
+      txn_begin_flags(Tail, Acc bor 16#00001)
   end.

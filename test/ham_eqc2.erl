@@ -15,16 +15,7 @@
 -include_lib("eqc/include/eqc_statem.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
--define(HAM_TYPE_BINARY, 0).
--define(HAM_TYPE_CUSTOM, 1).
--define(HAM_TYPE_UINT8, 3).
--define(HAM_TYPE_UINT16, 5).
--define(HAM_TYPE_UINT32, 7).
--define(HAM_TYPE_UINT64, 9).
--define(HAM_TYPE_REAL32, 11).
--define(HAM_TYPE_REAL64, 12).
--define(HAM_KEY_SIZE_UNLIMITED, 16#ffff).
--define(HAM_RECORD_SIZE_UNLIMITED, 16#ffffffff).
+-include("include/ham.hrl").
 
 -compile(export_all).
 
