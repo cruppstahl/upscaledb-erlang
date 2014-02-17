@@ -18,5 +18,8 @@ test eunit: compile
 	./rebar eunit
 	# LD_LIBRARY_PATH=priv erl -pa ebin -s ham_eqc2 test -s init stop
 
+eqc: compile
+	./rebar eqc
+
 shell: compile
 	LD_LIBRARY_PATH=priv erl -pa ebin

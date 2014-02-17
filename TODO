@@ -17,26 +17,21 @@ x cursors
     x tests/sample
 x need samples! (samples/readme.txt -> link to ham_tests.erl)
 x improve documentation
-o README
+x README
 
 
 
 o new quickcheck tests:
 ========================
     o run basic tests (insert/find/erase)
-        eqc: store each inserted key/value in an ordmap
-
-currently i'm fighting with db_insert_command: the binary() generators need
-to create keys/records with a size depending on the database flags and
-parameters (key size, record size). But the database configuration (#dbstate)
-is unknown when the generator is called!
--> maybe always use the same key type/size for all databases? but generate
-    them in an outer FORALL loop!
-    o and overwrite
-    o and duplicates
+        x with insert()
+        o with erase()
+        o with find()
+        o increase tests
+        o and overwrite
+        o and duplicates
 ========================
-    o reopen env while the test proceeds
-    o very large key size, very low page size
+    o with a single db, very large key size, very low page size -> insert/erase
     o perform many inserts/erase
         o with extkeys + low extkey threshold
         o with duplicates + low duptable threshold

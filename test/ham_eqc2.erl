@@ -181,33 +181,39 @@ record(DbState) ->
         binary(N)
   end.
 
+insert_params(State) ->
+  ?LET(Db, elements(State#state.open_dbs),
+    begin
+      {DbName, DbState} = Db,
+      {{DbName, DbState#dbstate.handle}, key(DbState), record(DbState)}
+    end).
+
 db_insert_pre(State) ->
   length(State#state.open_dbs) > 0.
 
 db_insert_command(State) ->
-  {call, ?MODULE, db_insert, [elements(State#state.open_dbs), 
-                              binary(), binary()]}.
+  {call, ?MODULE, db_insert, [insert_params(State)]}.
 
-db_insert({_DbName, DbState}, Key, Record) ->
-  ham:db_insert(DbState#dbstate.handle, Key, Record).
+db_insert({{_DbName, DbHandle}, Key, Record}) ->
+  ham:db_insert(DbHandle, Key, Record).
 
-db_insert_post(_State, [{_DbName, _DbState}, _Key, _Record], _Result) ->
-  true.
-  %case orddict:find(Key, DbState#dbstate.data) of
-    %{ok, _} ->
-      %eq(Result, {error, duplicate_key});
-    %error ->
-      %eq(Result, ok)
-  %end.
+db_insert_post(State, [{{DbName, _DbHandle}, Key, _Record}], Result) ->
+  {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
+  case orddict:find(Key, DbState#dbstate.data) of
+    {ok, _} ->
+      eq(Result, {error, duplicate_key});
+    error ->
+      eq(Result, ok)
+  end.
 
-db_insert_next(State, Result, [{_DbName, _DbState}, _Key, _Record]) ->
+db_insert_next(State, Result, [{{DbName, _DbHandle}, Key, Record}]) ->
+  {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
   case Result of
     ok ->
-      %DbState2 = DbState#dbstate{data
-                    %= orddict:store(Key, Record, DbState#dbstate.data)},
-      %Databases = lists:keydelete(DbName, 1, State#state.open_dbs),
-      %State#state{open_dbs = Databases ++ [{DbName, DbState2}]};
-      State;
+      DbState2 = DbState#dbstate{data
+                    = orddict:store(Key, Record, DbState#dbstate.data)},
+      Databases = lists:keydelete(DbName, 1, State#state.open_dbs),
+      State#state{open_dbs = Databases ++ [{DbName, DbState2}]};
     _ ->
       State
   end.
