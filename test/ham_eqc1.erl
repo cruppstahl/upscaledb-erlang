@@ -37,7 +37,7 @@ run() ->
   eqc:module(?MODULE).
 
 dbname() ->
-  choose(1, 20).
+  choose(1, 10).
 
 initial_state() ->
   #state{}.
@@ -243,11 +243,12 @@ is_valid_combination(EnvFlags, EnvParams) ->
   not (lists:member(in_memory, EnvFlags)
     andalso lists:keymember(cache_size, 1, EnvParams)).
 
-prop_ham() ->
+prop_ham1() ->
   ?FORALL({EnvFlags, EnvParams}, {env_flags(), env_parameters()},
     ?IMPLIES(is_valid_combination(EnvFlags, EnvParams),
-      ?FORALL(Cmds, commands(?MODULE, #state{env_flags = EnvFlags,
-                                           env_parameters = EnvParams}),
+      ?FORALL(Cmds, more_commands(10,
+                commands(?MODULE, #state{env_flags = EnvFlags,
+                                env_parameters = EnvParams})),
         begin
           %io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
           {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
@@ -257,10 +258,10 @@ prop_ham() ->
           eqc_statem:show_states(
             pretty_commands(?MODULE, Cmds, {History, State, Result},
               aggregate(command_names(Cmds),
-                collect(length(Cmds),
+                %%collect(length(Cmds),
                   begin
                     ham:env_close(EnvHandle),
                     Result == ok
-                  end))))
+                  end)))%%)
         end))).
 

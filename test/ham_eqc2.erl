@@ -37,6 +37,9 @@ run() ->
 dbname() ->
   choose(1, 5).
 
+dbhandle(State) ->
+  elements(State#state.open_dbs).
+
 initial_state() ->
   #state{}.
 
@@ -218,12 +221,79 @@ db_insert_next(State, Result, [{{DbName, _DbHandle}, Key, Record}]) ->
       State
   end.
 
+% ham_db_erase -------------------------------------
+erase_params(State) ->
+  ?LET(Db, elements(State#state.open_dbs),
+    begin
+      {DbName, DbState} = Db,
+      {{DbName, DbState#dbstate.handle}, key(DbState)}
+    end).
+
+db_erase_pre(State) ->
+  length(State#state.open_dbs) > 0.
+
+db_erase_command(State) ->
+  {call, ?MODULE, db_erase, [erase_params(State)]}.
+
+db_erase({{_DbName, DbHandle}, Key}) ->
+  ham:db_erase(DbHandle, Key).
+
+db_erase_post(State, [{{DbName, _DbHandle}, Key}], Result) ->
+  {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
+  case orddict:find(Key, DbState#dbstate.data) of
+    {ok, _} ->
+      eq(Result, ok);
+    error ->
+      eq(Result, {error, key_not_found})
+  end.
+
+db_erase_next(State, Result, [{{DbName, _DbHandle}, Key}]) ->
+  {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
+  case Result of
+    ok ->
+      DbState2 = DbState#dbstate{data
+                    = orddict:erase(Key, DbState#dbstate.data)},
+      Databases = lists:keydelete(DbName, 1, State#state.open_dbs),
+      State#state{open_dbs = Databases ++ [{DbName, DbState2}]};
+    _ ->
+      State
+  end.
+
+% ham_db_find --------------------------------------
+find_params(State) ->
+  ?LET(Db, elements(State#state.open_dbs),
+    begin
+      {DbName, DbState} = Db,
+      {{DbName, DbState#dbstate.handle}, key(DbState)}
+    end).
+
+db_find_pre(State) ->
+  length(State#state.open_dbs) > 0.
+
+db_find_command(State) ->
+  {call, ?MODULE, db_find, [erase_params(State)]}.
+
+db_find({{_DbName, DbHandle}, Key}) ->
+  ham:db_find(DbHandle, Key).
+
+db_find_post(State, [{{DbName, _DbHandle}, Key}], Result) ->
+  {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
+  case orddict:find(Key, DbState#dbstate.data) of
+    {ok, Record} ->
+      eq(Result, {ok, Record});
+    error ->
+      eq(Result, {error, key_not_found})
+  end.
+
+db_find_next(State, _, _) ->
+  State.
+
 % ham_env_close_db ---------------------------------
 db_close_pre(State) ->
   length(State#state.open_dbs) > 0.
 
 db_close_command(State) ->
-  {call, ?MODULE, db_close, [elements(State#state.open_dbs)]}.
+  {call, ?MODULE, db_close, [dbhandle(State)]}.
 
 db_close({_DbName, DbState}) ->
   ham:db_close(DbState#dbstate.handle).
@@ -231,7 +301,8 @@ db_close({_DbName, DbState}) ->
 db_close_post(_State, [_Database], Result) ->
   Result == ok.
 
-db_close_next(State, _Result, [{DbName, DbState}]) ->
+db_close_next(State, _Result, [{DbName, _DbState}]) ->
+  {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
   case lists:member(in_memory, State#state.env_flags) of
     true -> % in-memory: remove database
       State#state{
@@ -261,11 +332,12 @@ weight(_State, db_insert) ->
 weight(_State, _) ->
   10.
 
-prop_ham() ->
+prop_ham2() ->
   ?FORALL({EnvFlags, EnvParams}, {env_flags(), env_parameters()},
     ?IMPLIES(is_valid_combination(EnvFlags, EnvParams),
-      ?FORALL(Cmds, commands(?MODULE, #state{env_flags = EnvFlags,
-                                           env_parameters = EnvParams}),
+      ?FORALL(Cmds, more_commands(10,
+                commands(?MODULE, #state{env_flags = EnvFlags,
+                                env_parameters = EnvParams})),
         begin
           % io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
           {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
@@ -275,10 +347,10 @@ prop_ham() ->
           eqc_statem:show_states(
             pretty_commands(?MODULE, Cmds, {History, State, Result},
               aggregate(command_names(Cmds),
-                collect(length(Cmds),
+                %%collect(length(Cmds),
                   begin
                     ham:env_close(EnvHandle),
                     Result == ok
-                  end))))
+                  end)))%%)
         end))).
 
