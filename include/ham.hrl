@@ -30,6 +30,7 @@
    | disable_mmap
    | cache_unlimited
    | enable_recovery
+   | flush_when_committed
    | enable_transactions.
 
 -type env_open_flag() ::
@@ -40,6 +41,7 @@
    | cache_unlimited
    | enable_recovery
    | auto_recovery
+   | flush_when_committed
    | enable_transactions.
 
 -type env_create_db_flag() ::

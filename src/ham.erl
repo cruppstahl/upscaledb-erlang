@@ -421,6 +421,8 @@ env_create_flags([Flag | Tail], Acc) ->
       env_create_flags(Tail, Acc bor 16#40000);
     enable_recovery ->
       env_create_flags(Tail, Acc bor 16#08000);
+    flush_when_committed ->
+      env_create_flags(Tail, Acc bor 16#1000000);
     enable_transactions ->
       env_create_flags(Tail, Acc bor 16#20000)
   end.
@@ -443,6 +445,8 @@ env_open_flags([Flag | Tail], Acc) ->
       env_open_flags(Tail, Acc bor 16#08000);
     auto_recovery ->
       env_open_flags(Tail, Acc bor 16#10000);
+    flush_when_committed ->
+      env_create_flags(Tail, Acc bor 16#1000000);
     enable_transactions ->
       env_open_flags(Tail, Acc bor 16#20000)
   end.
