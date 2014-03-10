@@ -184,11 +184,20 @@ record(DbState) ->
         binary(N)
   end.
 
+flags(DbState) ->
+  case lists:member(enable_duplicate_keys, DbState#dbstate.flags) of
+    true ->
+      oneof([undefined, overwrite, duplicate]);
+    false ->
+      oneof([undefined, overwrite])
+  end.
+
 insert_params(State) ->
   ?LET(Db, elements(State#state.open_dbs),
     begin
       {DbName, DbState} = Db,
-      {{DbName, DbState#dbstate.handle}, key(DbState), record(DbState)}
+      {{DbName, DbState#dbstate.handle}, [flags(DbState)],
+                key(DbState), record(DbState)}
     end).
 
 db_insert_pre(State) ->
@@ -197,19 +206,25 @@ db_insert_pre(State) ->
 db_insert_command(State) ->
   {call, ?MODULE, db_insert, [insert_params(State)]}.
 
-db_insert({{_DbName, DbHandle}, Key, Record}) ->
-  ham:db_insert(DbHandle, Key, Record).
+db_insert({{_DbName, DbHandle}, Flags, Key, Record}) ->
+  ham:db_insert(DbHandle, undefined, Key, Record, Flags).
 
-db_insert_post(State, [{{DbName, _DbHandle}, Key, _Record}], Result) ->
+db_insert_post(State, [{{DbName, _DbHandle}, Flags, Key, _Record}], Result) ->
   {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
   case orddict:find(Key, DbState#dbstate.data) of
     {ok, _} ->
-      eq(Result, {error, duplicate_key});
+      case (lists:member(duplicate, Flags)
+            orelse lists:member(overwrite, Flags))of
+        true ->
+          eq(Result, ok);
+        false ->
+          eq(Result, {error, duplicate_key})
+      end;
     error ->
       eq(Result, ok)
   end.
 
-db_insert_next(State, Result, [{{DbName, _DbHandle}, Key, Record}]) ->
+db_insert_next(State, Result, [{{DbName, _DbHandle}, _Flags, Key, Record}]) ->
   {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
   case Result of
     ok ->

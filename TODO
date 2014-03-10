@@ -1,36 +1,8 @@
 
-x ham_parameter_t in env_create, env_open, env_create_db, env_open_db
-x test with in-memory environment
-x run different configurations for the environment
-x run different configurations for the various databases
-x add license headers
-x insert/erase/find
-x test compilation if eqc is not installed - does it still work?
-x use resource for handles!
-x transactions
-    x erlang: db_find/db_insert/db_erase are implemented
-    x txn_begin/txn_commit/txn_abort are missing
-    x nifs are missing
-    x tests/sample
-        x move macros (HAM_TYPE_UINT32) into .hrl file!
-x cursors
-    x tests/sample
-x need samples! (samples/readme.txt -> link to ham_tests.erl)
-x improve documentation
-x README
-
-
-
 o new quickcheck tests:
-========================
-    o run basic tests (insert/find/erase)
-        x with insert()
-        o with erase()
-        o with find()
-        o increase tests
-        o and overwrite
-        o and duplicates
-========================
+    x run basic tests (insert/find/erase)
+        x with overwrite, duplicate
+
     o with a single db, very large key size, very low page size -> insert/erase
     o perform many inserts/erase
         o with extkeys + low extkey threshold
