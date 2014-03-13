@@ -9,14 +9,13 @@
 %% See files COPYING.* for License information.
 %%
 %%
-%% This test uses QuviQ's Quickcheck for Erlang. It randomly creates, closes,
-%% opens databases in various configurations. It inserts keys using
-%% ham:db_insert(), erases with ham:db_erase() and looks them up with
-%% ham::db_find(). Existing keys are overwritten, and duplicate keys are 
-%% also tested if the randomly chosen database configuration allows duplicate
-%% keys.
+%% This test uses QuviQ's Quickcheck for Erlang. It creates a database with
+%% a very low page size (1kb) and for variable length keys. Then it inserts
+%% and erases large key/value pairs.
 %%
--module(ham_eqc2).
+%% This test focuses on btree SMOs.
+%%
+-module(ham_eqc3).
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eqc/include/eqc_statem.hrl").
@@ -42,7 +41,7 @@ run() ->
 
 
 dbname() ->
-  choose(1, 5).
+  choose(1, 3).
 
 dbhandle(State) ->
   elements(State#state.open_dbs).
@@ -55,28 +54,14 @@ initial_state() ->
 % ignore record_number - it has the same characteristics as HAM_TYPE_UINT64,
 % but adds lots of complexity to the test
 create_db_flags() ->
-  [elements([undefined, enable_duplicate_keys])].
+  [elements([undefined])].
 
 create_db_parameters() ->
-  ?LET(KeySize, choose(1, 128),
-    ?LET(RecordSize, choose(0, 16),
-      [
-        oneof([
-                {record_size, ?HAM_RECORD_SIZE_UNLIMITED},
-                {record_size, RecordSize}
-              ]),
-        oneof([
-                [{key_type, ?HAM_TYPE_BINARY}, {key_size,
-                                                ?HAM_KEY_SIZE_UNLIMITED}],
-                [{key_type, ?HAM_TYPE_BINARY}, {key_size, KeySize}],
-                {key_type, ?HAM_TYPE_UINT8},
-                {key_type, ?HAM_TYPE_UINT16},
-                {key_type, ?HAM_TYPE_UINT32},
-                {key_type, ?HAM_TYPE_UINT64},
-                {key_type, ?HAM_TYPE_REAL32},
-                {key_type, ?HAM_TYPE_REAL64}
-              ])
-      ])).
+  [
+    {record_size, ?HAM_RECORD_SIZE_UNLIMITED},
+    {key_type, ?HAM_TYPE_BINARY},
+    {key_size, ?HAM_KEY_SIZE_UNLIMITED}
+  ].
 
 create_db_pre(State, [_EnvHandle, DbName, _DbFlags, _DbParameters]) ->
   lists:keymember(DbName, 1, State#state.open_dbs) == false
@@ -139,67 +124,15 @@ open_db_next(State, Result, [_EnvHandle, DbName]) ->
   State#state{closed_dbs = lists:keydelete(DbName, 1, State#state.closed_dbs),
         open_dbs = State#state.open_dbs ++ [{DbName, DbState2}]}.
 
-% ham_env_erase_db ---------------------------------
-erase_db_pre(State, [_EnvHandle, DbName]) ->
-  lists:keymember(DbName, 1, State#state.open_dbs) == false
-    andalso lists:keymember(DbName, 1, State#state.closed_dbs) == true.
-
-erase_db_command(_State) ->
-  {call, ?MODULE, erase_db, [{var, env}, dbname()]}.
-
-erase_db(EnvHandle, DbName) ->
-  ham:env_erase_db(EnvHandle, DbName).
-
-erase_db_post(_State, [_EnvHandle, _DbName], Result) ->
-  Result == ok.
-
-erase_db_next(State, _Result, [_EnvHandle, DbName]) ->
-  State#state{open_dbs = lists:keydelete(DbName, 1, State#state.open_dbs),
-        closed_dbs = lists:keydelete(DbName, 1, State#state.closed_dbs)}.
-
 % ham_db_insert ------------------------------------
-key(DbState) ->
-  case lists:keyfind(key_type, 1, DbState#dbstate.parameters) of 
-    {key_type, ?HAM_TYPE_UINT8} ->
-      binary(1);
-    {key_type, ?HAM_TYPE_UINT16} ->
-      binary(2);
-    {key_type, ?HAM_TYPE_UINT32} ->
-      binary(4);
-    {key_type, ?HAM_TYPE_UINT64} ->
-      binary(8);
-    {key_type, ?HAM_TYPE_REAL32} ->
-      binary(4);
-    {key_type, ?HAM_TYPE_REAL64} ->
-      binary(8);
-    _ ->
-      case lists:keyfind(key_size, 1, DbState#dbstate.parameters) of 
-        {key_size, ?HAM_KEY_SIZE_UNLIMITED} ->
-          binary();
-        {key_size, N} ->
-          binary(N);
-        _ ->
-          binary()
-      end
-  end.
+key(_DbState) ->
+  binary().
 
-record(DbState) ->
-  case lists:keyfind(record_size, 1, DbState#dbstate.parameters) of 
-    {record_size, ?HAM_RECORD_SIZE_UNLIMITED} ->
-        binary();
-    {record_size, N} ->
-        binary(N)
-  end.
+record(_DbState) ->
+  binary().
 
-flags(DbState) ->
-  case lists:member(enable_duplicate_keys, DbState#dbstate.flags) of
-    false ->
-      oneof([undefined, overwrite]);
-    % duplicates are currently disabled; they are not correctly tracked
-    % in the state
-    true ->
-        oneof([undefined, overwrite]) % , duplicate])
-  end.
+flags(_DbState) ->
+  undefined.
 
 insert_params(State) ->
   ?LET(Db, elements(State#state.open_dbs),
@@ -218,17 +151,11 @@ db_insert_command(State) ->
 db_insert({{_DbName, DbHandle}, Flags, Key, Record}) ->
   ham:db_insert(DbHandle, undefined, Key, Record, Flags).
 
-db_insert_post(State, [{{DbName, _DbHandle}, Flags, Key, _Record}], Result) ->
+db_insert_post(State, [{{DbName, _DbHandle}, _Flags, Key, _Record}], Result) ->
   {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
   case orddict:find(Key, DbState#dbstate.data) of
     {ok, _} ->
-      case (lists:member(duplicate, Flags)
-            orelse lists:member(overwrite, Flags))of
-        true ->
-          eq(Result, ok);
-        false ->
-          eq(Result, {error, duplicate_key})
-      end;
+      eq(Result, {error, duplicate_key});
     error ->
       eq(Result, ok)
   end.
@@ -238,7 +165,8 @@ db_insert_next(State, Result, [{{DbName, _DbHandle}, _Flags, Key, Record}]) ->
   case Result of
     ok ->
       DbState2 = DbState#dbstate{data
-                    = orddict:store(Key, Record, DbState#dbstate.data)},
+                    = orddict:store(Key, byte_size(Record),
+                                DbState#dbstate.data)},
       Databases = lists:keydelete(DbName, 1, State#state.open_dbs),
       State#state{open_dbs = Databases ++ [{DbName, DbState2}]};
     _ ->
@@ -303,8 +231,9 @@ db_find({{_DbName, DbHandle}, Key}) ->
 db_find_post(State, [{{DbName, _DbHandle}, Key}], Result) ->
   {DbName, DbState} = lists:keyfind(DbName, 1, State#state.open_dbs),
   case orddict:find(Key, DbState#dbstate.data) of
-    {ok, Record} ->
-      eq(Result, {ok, Record});
+    {ok, RecordSize} ->
+      {ok, Record} = Result,
+      eq(byte_size(Record), RecordSize);
     error ->
       eq(Result, {error, key_not_found})
   end.
@@ -339,22 +268,21 @@ db_close_next(State, _Result, [{DbName, _DbState}]) ->
   end.
 
 env_flags() ->
-  oneof([
-    [in_memory],
-    list(elements([enable_fsync, disable_mmap, cache_unlimited,
-                        enable_recovery]))]).
+  [undefined].
 
 env_parameters() ->
-  list(elements([{page_size, 1024 * 4}])).
+  [{cache_size, 100000}, {page_size, 1024}].
 
 weight(_State, db_insert) ->
+  100;
+weight(_State, db_erase) ->
   100;
 weight(_State, _) ->
   10.
 
-prop_ham2() ->
+prop_ham3() ->
   ?FORALL({EnvFlags, EnvParams}, {env_flags(), env_parameters()},
-    ?FORALL(Cmds, more_commands(100,
+    ?FORALL(Cmds, more_commands(500,
               commands(?MODULE, #state{env_flags = EnvFlags,
                               env_parameters = EnvParams})),
       begin

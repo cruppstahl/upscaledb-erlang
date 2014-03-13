@@ -6,6 +6,7 @@
 %%
 %% See files COPYING.* for License information.
 %%
+-export_type([env/0, db/0, txn/0, cursor/0]).
 
 -define(HAM_TYPE_BINARY, 0).
 -define(HAM_TYPE_CUSTOM, 1).
@@ -18,10 +19,10 @@
 -define(HAM_KEY_SIZE_UNLIMITED, 16#ffff).
 -define(HAM_RECORD_SIZE_UNLIMITED, 16#ffffffff).
 
--opaque env() :: term().
--opaque db() :: term().
--opaque txn() :: term().
--opaque cursor() :: term().
+-type env() :: term().
+-type db() :: term().
+-type txn() :: term().
+-type cursor() :: term().
 
 -type env_create_flag() ::
    undefined

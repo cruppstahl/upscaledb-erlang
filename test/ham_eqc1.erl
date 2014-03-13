@@ -9,6 +9,10 @@
 %% See files COPYING.* for License information.
 %%
 %%
+%% This test uses QuviQ's Quickcheck for Erlang. It randomly creates, closes,
+%% opens, erases and renames databases. It does not actually insert key/value
+%% pairs.
+%%
 -module(ham_eqc1).
 
 -include_lib("eqc/include/eqc.hrl").
@@ -246,7 +250,7 @@ is_valid_combination(EnvFlags, EnvParams) ->
 prop_ham1() ->
   ?FORALL({EnvFlags, EnvParams}, {env_flags(), env_parameters()},
     ?IMPLIES(is_valid_combination(EnvFlags, EnvParams),
-      ?FORALL(Cmds, more_commands(10,
+      ?FORALL(Cmds, more_commands(100,
                 commands(?MODULE, #state{env_flags = EnvFlags,
                                 env_parameters = EnvParams})),
         begin
