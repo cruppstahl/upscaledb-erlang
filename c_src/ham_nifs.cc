@@ -264,6 +264,23 @@ ham_nifs_strerror(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 }
 
 ERL_NIF_TERM
+ham_nifs_get_license(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  if (argc != 0)
+    return (enif_make_badarg(env));
+
+  const char *licensee = 0;
+  const char *product = 0;
+  ham_get_license(&licensee, &product);
+  if (!licensee)
+    licensee = "";
+
+  return (enif_make_tuple2(env,
+        enif_make_string(env, licensee, ERL_NIF_LATIN1),
+        enif_make_string(env, product, ERL_NIF_LATIN1)));
+}
+
+ERL_NIF_TERM
 ham_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ham_env_t *henv;
@@ -1019,6 +1036,7 @@ extern "C" {
 static ErlNifFunc ham_nif_funcs[] =
 {
   {"strerror", 1, ham_nifs_strerror},
+  {"get_license", 0, ham_nifs_get_license},
   {"env_create", 4, ham_nifs_env_create},
   {"env_open", 3, ham_nifs_env_open},
   {"env_create_db", 4, ham_nifs_env_create_db},
