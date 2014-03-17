@@ -147,6 +147,20 @@ get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ham_parameter_t *parameters,
               ERL_NIF_LATIN1) <= 0)
       return (0);
 
+    if (!strcmp(atom, "enable_journal_compression")) {
+      parameters[i].name = HAM_PARAM_ENABLE_JOURNAL_COMPRESSION;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "enable_record_compression")) {
+      parameters[i].name = HAM_PARAM_ENABLE_RECORD_COMPRESSION;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
     if (!strcmp(atom, "cache_size")) {
       parameters[i].name = HAM_PARAM_CACHE_SIZE;
       if (!enif_get_uint64(env, array[1], &parameters[i].value))
