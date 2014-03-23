@@ -46,14 +46,12 @@ provide a good starting point.
 
 === Licensing ===
 
-The erlang driver is released under GPL2 or later, just like hamsterdb.
-hamsterdb Embedded Storage (including the erlang driver) can be licensed
-on a per-developer basis for closed source applications. For more details, see
-http://hamsterdb.com/licensing and http://hamsterdb.com/store.
+The erlang driver is released under the MIT license, just like hamsterdb.
+The MIT license allows unrestricted use for commercial and non-commercial
+applications. See the file COPYING for more information.
 
-There are several exceptions for other open source licenses (see
-http://hamsterdb.com/licensing/exceptions for legal information and a license
-list).
+A commercial, closed source version hamsterdb pro with additional functionality
+is available on request. See http://hamsterdb.com for more information.
 
 === Thanks ===
 
