@@ -46,9 +46,9 @@ provide a good starting point.
 
 === Licensing ===
 
-The erlang driver is released under the MIT license, just like hamsterdb.
-The MIT license allows unrestricted use for commercial and non-commercial
-applications. See the file COPYING for more information.
+The erlang driver is released under the Apache Public License (APL) 2.0, just
+like hamsterdb. The APL allows unrestricted use for commercial and
+non-commercial applications. See the file COPYING for more information.
 
 A commercial, closed source version hamsterdb pro with additional functionality
 is available on request. See http://hamsterdb.com for more information.
