@@ -31,7 +31,6 @@
 -include("include/ham.hrl").
 
 -export([strerror/1,
-   get_license/0,
    env_create/1, env_create/2, env_create/3, env_create/4,
    env_open/1, env_open/2, env_open/3,
    env_create_db/2, env_create_db/3, env_create_db/4,
@@ -65,15 +64,6 @@
   string().
 strerror(Status) ->
   ham_nifs:strerror(Status).
-
-
-
-%% @doc Returns information about the licensee and the licensed product.
-%% This wraps the native ham_get_license function.
--spec get_license() ->
-    {string(), string()}.
-get_license() ->
-  ham_nifs:get_license().
 
 
 
