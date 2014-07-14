@@ -433,7 +433,9 @@ env_create_flags([Flag | Tail], Acc) ->
     flush_when_committed ->
       env_create_flags(Tail, Acc bor 16#1000000);
     enable_transactions ->
-      env_create_flags(Tail, Acc bor 16#20000)
+      env_create_flags(Tail, Acc bor 16#20000);
+    enable_crc32 ->
+      env_create_flags(Tail, Acc bor 16#2000000)
   end.
 
 env_open_flags([], Acc) ->
@@ -457,7 +459,9 @@ env_open_flags([Flag | Tail], Acc) ->
     flush_when_committed ->
       env_create_flags(Tail, Acc bor 16#1000000);
     enable_transactions ->
-      env_open_flags(Tail, Acc bor 16#20000)
+      env_open_flags(Tail, Acc bor 16#20000);
+    enable_crc32 ->
+      env_create_flags(Tail, Acc bor 16#2000000)
   end.
 
 env_create_db_flags([], Acc) ->
