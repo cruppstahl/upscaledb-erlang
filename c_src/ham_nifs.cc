@@ -59,11 +59,11 @@ status_to_atom(ErlNifEnv *env, ham_status_t st)
     case HAM_SUCCESS:
       return (g_atom_ok);
     case HAM_INV_RECORD_SIZE:
-      return (enif_make_atom(env, "record_size"));
+      return (enif_make_atom(env, "inv_record_size"));
     case HAM_INV_KEY_SIZE:
-      return (enif_make_atom(env, "key_size"));
+      return (enif_make_atom(env, "inv_key_size"));
     case HAM_INV_PAGE_SIZE:
-      return (enif_make_atom(env, "page_size"));
+      return (enif_make_atom(env, "inv_page_size"));
     case HAM_OUT_OF_MEMORY:
       return (enif_make_atom(env, "out_of_memory"));
     case HAM_INV_PARAMETER:
@@ -181,6 +181,13 @@ get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ham_parameter_t *parameters,
     }
     if (!strcmp(atom, "page_size")) {
       parameters[i].name = HAM_PARAM_PAGE_SIZE;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
+    if (!strcmp(atom, "file_size")) {
+      parameters[i].name = HAM_PARAM_FILE_SIZE;
       if (!enif_get_uint64(env, array[1], &parameters[i].value))
         return (0);
       i++;
