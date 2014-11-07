@@ -30,7 +30,6 @@
                 }).
 
 -record(state, {env_flags = [], % environment flags for ham_env_create
-                env_parameters = [], % environment parameters for ham_env_create
                 open_dbs = [], % list of open databases [{name, #dbstate}]
                 closed_dbs = [] % list of closed databases [{name, #dbstate}]
                 }).
@@ -56,25 +55,25 @@ create_db_flags() ->
   [elements([undefined, enable_duplicate_keys])].
 
 create_db_parameters() ->
-  ?LET(KeySize, choose(1, 128),
-    ?LET(RecordSize, choose(0, 16),
-      [
-        oneof([
-                {record_size, ?HAM_RECORD_SIZE_UNLIMITED},
-                {record_size, RecordSize}
-              ]),
-        oneof([
-                [{key_type, ?HAM_TYPE_BINARY}, {key_size,
-                                                ?HAM_KEY_SIZE_UNLIMITED}],
-                [{key_type, ?HAM_TYPE_BINARY}, {key_size, KeySize}],
-                {key_type, ?HAM_TYPE_UINT8},
-                {key_type, ?HAM_TYPE_UINT16},
-                {key_type, ?HAM_TYPE_UINT32},
-                {key_type, ?HAM_TYPE_UINT64},
-                {key_type, ?HAM_TYPE_REAL32},
-                {key_type, ?HAM_TYPE_REAL64}
-              ])
-      ])).
+  [
+    {record_size, record_size_gen()},
+      frequency([
+        {1, [{key_type, ?HAM_TYPE_BINARY},
+             {key_size, key_size_gen()} ]},
+        {2, {key_type, elements([?HAM_TYPE_UINT8, ?HAM_TYPE_UINT16,
+                                 ?HAM_TYPE_UINT32, ?HAM_TYPE_UINT64,
+                                 ?HAM_TYPE_REAL32, ?HAM_TYPE_REAL64])}}])
+  ].
+
+record_size_gen() ->
+  oneof([choose(0, 32),
+         ?SHRINK(?HAM_RECORD_SIZE_UNLIMITED,
+                 [choose(0, ?HAM_RECORD_SIZE_UNLIMITED)])]).
+
+key_size_gen() ->
+  oneof([choose(1, 128),
+         ?SHRINK(?HAM_KEY_SIZE_UNLIMITED,
+                 [choose(1,?HAM_KEY_SIZE_UNLIMITED)])]).
 
 create_db_pre(State, [_EnvHandle, DbName, _DbFlags, _DbParameters]) ->
   lists:keymember(DbName, 1, State#state.open_dbs) == false
@@ -339,11 +338,8 @@ db_close_next(State, _Result, [{DbName, _DbState}]) ->
 env_flags() ->
   oneof([
     [in_memory],
-    list(elements([enable_fsync, disable_mmap, cache_unlimited,
-                        enable_recovery]))]).
-
-env_parameters() ->
-  list(elements([{page_size, 1024 * 4}])).
+    [cache_unlimited]
+  ]).
 
 weight(_State, db_insert) ->
   100;
@@ -351,14 +347,11 @@ weight(_State, _) ->
   10.
 
 prop_ham2() ->
-  ?FORALL({EnvFlags, EnvParams}, {env_flags(), env_parameters()},
-    ?FORALL(Cmds, more_commands(100,
-              commands(?MODULE, #state{env_flags = EnvFlags,
-                              env_parameters = EnvParams})),
+  ?FORALL(EnvFlags, env_flags(),
+    ?FORALL(Cmds, more_commands(500,
+              commands(?MODULE, #state{env_flags = EnvFlags})),
       begin
-        % io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
-        {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
-                                       EnvParams),
+        {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags),
         {History, State, Result} = run_commands(?MODULE, Cmds,
                                             [{env, EnvHandle}]),
         eqc_statem:show_states(

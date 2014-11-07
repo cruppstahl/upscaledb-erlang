@@ -186,8 +186,8 @@ get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ham_parameter_t *parameters,
       i++;
       continue;
     }
-    if (!strcmp(atom, "file_size")) {
-      parameters[i].name = HAM_PARAM_FILE_SIZE;
+    if (!strcmp(atom, "file_size_limit")) {
+      parameters[i].name = HAM_PARAM_FILE_SIZE_LIMIT;
       if (!enif_get_uint64(env, array[1], &parameters[i].value))
         return (0);
       i++;

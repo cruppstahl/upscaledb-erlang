@@ -53,25 +53,25 @@ create_db_flags() ->
   [elements([undefined, enable_duplicate_keys, record_number])].
 
 create_db_parameters() ->
-  ?LET(KeySize, choose(1, 128),
-    ?LET(RecordSize, choose(0, 1024 * 1024 * 4),
-      [
-        oneof([
-                {record_size, ?HAM_RECORD_SIZE_UNLIMITED},
-                {record_size, RecordSize}
-              ]),
-        oneof([
-                [{key_type, ?HAM_TYPE_BINARY}, {key_size,
-                                                ?HAM_KEY_SIZE_UNLIMITED}],
-                [{key_type, ?HAM_TYPE_BINARY}, {key_size, KeySize}],
-                {key_type, ?HAM_TYPE_UINT8},
-                {key_type, ?HAM_TYPE_UINT16},
-                {key_type, ?HAM_TYPE_UINT32},
-                {key_type, ?HAM_TYPE_UINT64},
-                {key_type, ?HAM_TYPE_REAL32},
-                {key_type, ?HAM_TYPE_REAL64}
-              ])
-      ])).
+  [
+    {record_size, record_size_gen()},
+      frequency([
+        {1, [{key_type, ?HAM_TYPE_BINARY},
+             {key_size, key_size_gen()} ]},
+        {2, {key_type, elements([?HAM_TYPE_UINT8, ?HAM_TYPE_UINT16,
+                                 ?HAM_TYPE_UINT32, ?HAM_TYPE_UINT64,
+                                 ?HAM_TYPE_REAL32, ?HAM_TYPE_REAL64])}}])
+  ].
+
+record_size_gen() ->
+  oneof([choose(0, 32),
+         ?SHRINK(?HAM_RECORD_SIZE_UNLIMITED,
+                 [choose(0, ?HAM_RECORD_SIZE_UNLIMITED)])]).
+
+key_size_gen() ->
+  oneof([choose(1, 128),
+         ?SHRINK(?HAM_KEY_SIZE_UNLIMITED,
+                 [choose(1,?HAM_KEY_SIZE_UNLIMITED)])]).
 
 create_db_pre(State) ->
   length(State#state.databases) < 30.
@@ -111,8 +111,7 @@ open_db_flags() ->
     [elements([undefined, read_only])].
 
 open_db_pre(State) ->
-  State#state.open /= []
-    andalso not lists:member(in_memory, State#state.env_flags).
+  State#state.open /= [].
 
 open_db_command(_State) ->
   {call, ?MODULE, open_db, [{var, env}, dbname(), open_db_flags()]}.
@@ -153,8 +152,7 @@ open_db_next(State, Result, [_EnvHandle, DbName, _DbFlags]) ->
 % ham_env_erase_db ---------------------------------
 
 erase_db_pre(State) ->
-  State#state.databases /= []
-    andalso not lists:member(in_memory, State#state.env_flags).
+  State#state.databases /= [].
 
 erase_db_pre(State, [_EnvHandle, DbName]) ->
   lists:keymember(DbName, 1, State#state.open) == false
@@ -175,8 +173,7 @@ erase_db_next(State, _Result, [_EnvHandle, DbName]) ->
 % ham_env_rename_db ---------------------------------
 
 rename_db_pre(State) ->
-  State#state.databases /= []
-    andalso not lists:member(in_memory, State#state.env_flags).
+  State#state.databases /= [].
 
 rename_db_pre(State, [_EnvHandle, OldName, NewName]) ->
   % names must not be identical
@@ -225,48 +222,32 @@ db_close_post(_State, [{_DbName, _DbHandle}], Result) ->
   Result == ok.
 
 db_close_next(State, _Result, [{DbName, _DbHandle}]) ->
-  case lists:member(in_memory, State#state.env_flags) of
-    true ->
-      State#state{open = lists:keydelete(DbName, 1, State#state.open),
-                  databases = lists:delete(DbName, State#state.databases)};
-    false ->
-      State#state{open = lists:keydelete(DbName, 1, State#state.open)}
-  end.
-
-
+  State#state{open = lists:keydelete(DbName, 1, State#state.open)}.
 
 env_flags() ->
-  oneof([
-    [in_memory],
-    list(elements([enable_fsync, disable_mmap, cache_unlimited,
-                     enable_recovery]))]).
+  list(elements([cache_unlimited, enable_recovery])).
 
 env_parameters() ->
-  list(elements([{cache_size, 100000}, {page_size, 1024 * 4}])).
-
-is_valid_combination(EnvFlags, EnvParams) ->
-  not (lists:member(in_memory, EnvFlags)
-    andalso lists:keymember(cache_size, 1, EnvParams)).
+  list(elements([{cache_size, 1000000}])).
 
 prop_ham1() ->
   ?FORALL({EnvFlags, EnvParams}, {env_flags(), env_parameters()},
-    ?IMPLIES(is_valid_combination(EnvFlags, EnvParams),
-      ?FORALL(Cmds, more_commands(100,
-                commands(?MODULE, #state{env_flags = EnvFlags,
-                                env_parameters = EnvParams})),
-        begin
-          %io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
-          {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
-                                         EnvParams),
-          {History, State, Result} = run_commands(?MODULE, Cmds,
-                                              [{env, EnvHandle}]),
-          eqc_statem:show_states(
-            pretty_commands(?MODULE, Cmds, {History, State, Result},
-              aggregate(command_names(Cmds),
-                %%collect(length(Cmds),
-                  begin
-                    ham:env_close(EnvHandle),
-                    Result == ok
-                  end)))%%)
-        end))).
+    ?FORALL(Cmds, more_commands(100,
+              commands(?MODULE, #state{env_flags = EnvFlags,
+                              env_parameters = EnvParams})),
+      begin
+        %io:format("flags ~p, params ~p ~n", [EnvFlags, EnvParams]),
+        {ok, EnvHandle} = ham:env_create("ham_eqc.db", EnvFlags, 0,
+                                       EnvParams),
+        {History, State, Result} = run_commands(?MODULE, Cmds,
+                                            [{env, EnvHandle}]),
+        eqc_statem:show_states(
+          pretty_commands(?MODULE, Cmds, {History, State, Result},
+            aggregate(command_names(Cmds),
+              %%collect(length(Cmds),
+                begin
+                  ham:env_close(EnvHandle),
+                  Result == ok
+                end)))%%)
+      end)).
 
