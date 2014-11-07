@@ -1,4 +1,4 @@
-hamsterdb-erlang 0.0.1                            So 16. Feb 21:49:05 CET 2014
+hamsterdb-erlang 2.1.9                              Fr 7. Nov 15:00:58 CET 2014
 
 (C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
 
