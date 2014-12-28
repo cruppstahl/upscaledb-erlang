@@ -58,7 +58,9 @@
 -type env_create_db_flag() ::
    undefined
    | enable_duplicate_keys
-   | record_number.
+   | record_number %% deprecated, use record_number64 instead
+   | record_number32
+   | record_number64.
 
 -type env_open_db_flag() ::
    undefined
