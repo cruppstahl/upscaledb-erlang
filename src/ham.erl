@@ -473,9 +473,9 @@ env_create_db_flags([Flag | Tail], Acc) ->
     enable_duplicate_keys ->
       env_open_flags(Tail, Acc bor 16#04000);
     record_number32 ->
-      env_open_flags(Tail, Acc bor 16#01000)
+      env_open_flags(Tail, Acc bor 16#01000);
     record_number ->
-      env_open_flags(Tail, Acc bor 16#02000)
+      env_open_flags(Tail, Acc bor 16#02000);
     record_number64 ->
       env_open_flags(Tail, Acc bor 16#02000)
   end.
