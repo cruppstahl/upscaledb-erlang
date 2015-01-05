@@ -302,7 +302,7 @@ ham_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ham_u32_t flags = 0;
   ham_u32_t mode = 0;
   char filename[MAX_STRING];
-  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  ham_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
   char aesdir_buf[MAX_STRING];
 
@@ -315,11 +315,11 @@ ham_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[2], &mode))
     return (enif_make_badarg(env));
-  if (!get_parameters(env, argv[3], &parameters[0],
+  if (!get_parameters(env, argv[3], &params[0],
               &logdir_buf[0], &aesdir_buf[0]))
     return (enif_make_badarg(env));
 
-  ham_status_t st = ham_env_create(&henv, filename, flags, mode, 0);
+  ham_status_t st = ham_env_create(&henv, filename, flags, mode, &params[0]);
   if (st)
     return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
 
@@ -339,7 +339,7 @@ ham_nifs_env_open(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ham_env_t *henv;
   ham_u32_t flags;
   char filename[MAX_STRING];
-  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  ham_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
   char aesdir_buf[MAX_STRING];
 
@@ -350,11 +350,11 @@ ham_nifs_env_open(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[1], &flags))
     return (enif_make_badarg(env));
-  if (!get_parameters(env, argv[2], &parameters[0],
+  if (!get_parameters(env, argv[2], &params[0],
               &logdir_buf[0], &aesdir_buf[0]))
     return (enif_make_badarg(env));
 
-  ham_status_t st = ham_env_open(&henv, filename, flags, 0);
+  ham_status_t st = ham_env_open(&henv, filename, flags, &params[0]);
   if (st)
     return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
 
@@ -374,7 +374,7 @@ ham_nifs_env_create_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ham_db_t *hdb;
   ham_u32_t dbname;
   ham_u32_t flags;
-  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  ham_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
   char aesdir_buf[MAX_STRING];
   env_wrapper *ewrapper;
@@ -388,11 +388,12 @@ ham_nifs_env_create_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[2], &flags))
     return (enif_make_badarg(env));
-  if (!get_parameters(env, argv[3], &parameters[0],
+  if (!get_parameters(env, argv[3], &params[0],
               &logdir_buf[0], &aesdir_buf[0]))
     return (enif_make_badarg(env));
 
-  ham_status_t st = ham_env_create_db(ewrapper->env, &hdb, dbname, flags, 0);
+  ham_status_t st = ham_env_create_db(ewrapper->env, &hdb, dbname, flags,
+          &params[0]);
   if (st)
     return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
 
@@ -412,7 +413,7 @@ ham_nifs_env_open_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   ham_db_t *hdb;
   ham_u32_t dbname;
   ham_u32_t flags;
-  ham_parameter_t parameters[MAX_PARAMETERS] = {{0, 0}};
+  ham_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
   char aesdir_buf[MAX_STRING];
   env_wrapper *ewrapper;
@@ -426,11 +427,12 @@ ham_nifs_env_open_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
     return (enif_make_badarg(env));
   if (!enif_get_uint(env, argv[2], &flags))
     return (enif_make_badarg(env));
-  if (!get_parameters(env, argv[3], &parameters[0],
+  if (!get_parameters(env, argv[3], &params[0],
               &logdir_buf[0], &aesdir_buf[0]))
     return (enif_make_badarg(env));
 
-  ham_status_t st = ham_env_open_db(ewrapper->env, &hdb, dbname, flags, 0);
+  ham_status_t st = ham_env_open_db(ewrapper->env, &hdb, dbname, flags,
+          &params[0]);
   if (st)
     return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
 
@@ -601,6 +603,58 @@ ham_nifs_db_find(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   binrec.size = rec.size;
 
   return (enif_make_tuple2(env, g_atom_ok, enif_make_binary(env, &binrec)));
+}
+
+ERL_NIF_TERM
+ham_nifs_db_find_flags(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  ham_key_t key = {0};
+  ham_record_t rec = {0};
+  uint32_t flags = 0;
+  ErlNifBinary binkey;
+  ErlNifBinary binrec;
+  db_wrapper *dwrapper;
+  txn_wrapper *twrapper;
+
+  if (argc != 4)
+    return (enif_make_badarg(env));
+  if (!enif_get_resource(env, argv[0], g_ham_db_resource, (void **)&dwrapper)
+          || dwrapper->is_closed)
+    return (enif_make_badarg(env));
+  // argv[1] is the Transaction!
+  if (!enif_get_resource(env, argv[1], g_ham_txn_resource, (void **)&twrapper))
+    twrapper = 0;
+  if (twrapper != 0 && twrapper->is_closed)
+    return (enif_make_badarg(env));
+  if (!enif_inspect_binary(env, argv[2], &binkey))
+    return (enif_make_badarg(env));
+  if (!enif_get_uint(env, argv[3], &flags))
+    return (enif_make_badarg(env));
+
+  key.data = binkey.data;
+  key.size = binkey.size;
+
+  ham_status_t st = ham_db_find(dwrapper->db, twrapper ? twrapper->txn : 0,
+                                &key, &rec, flags);
+  if (st)
+    return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
+
+  if (!enif_alloc_binary(rec.size, &binrec))
+    return (enif_make_tuple2(env, g_atom_error,
+                status_to_atom(env, HAM_OUT_OF_MEMORY)));
+  if (flags) {
+    if (!enif_alloc_binary(key.size, &binkey))
+      return (enif_make_tuple2(env, g_atom_error,
+                  status_to_atom(env, HAM_OUT_OF_MEMORY)));
+    memcpy(binkey.data, key.data, key.size);
+  }
+
+  memcpy(binrec.data, rec.data, rec.size);
+  binrec.size = rec.size;
+
+  return (enif_make_tuple3(env, g_atom_ok,
+              enif_make_binary(env, &binkey),
+              enif_make_binary(env, &binrec)));
 }
 
 ERL_NIF_TERM
@@ -1060,6 +1114,7 @@ static ErlNifFunc ham_nif_funcs[] =
   {"db_insert", 5, ham_nifs_db_insert},
   {"db_erase", 3, ham_nifs_db_erase},
   {"db_find", 3, ham_nifs_db_find},
+  {"db_find_flags", 4, ham_nifs_db_find_flags},
   {"db_close", 1, ham_nifs_db_close},
   {"txn_begin", 2, ham_nifs_txn_begin},
   {"txn_abort", 1, ham_nifs_txn_abort},

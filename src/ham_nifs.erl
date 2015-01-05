@@ -29,6 +29,7 @@
      db_insert/5,
      db_erase/3,
      db_find/3,
+     db_find_flags/4,
      db_close/1,
      txn_begin/2,
      txn_abort/1,
@@ -88,6 +89,9 @@ db_erase(_Db, _Txn, _Key) ->
   throw(?MISSING_NIF).
 
 db_find(_Db, _Txn, _Key) ->
+  throw(?MISSING_NIF).
+
+db_find_flags(_Db, _Txn, _Key, _Flags) ->
   throw(?MISSING_NIF).
 
 db_close(_Db) ->

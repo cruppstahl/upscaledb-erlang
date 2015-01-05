@@ -39,7 +39,7 @@
    env_erase_db/2,
    db_insert/3, db_insert/4, db_insert/5,
    db_erase/2, db_erase/3,
-   db_find/2, db_find/3,
+   db_find/2, db_find/3, db_find/4,
    db_close/1,
    txn_begin/1, txn_begin/2,
    txn_abort/1,
@@ -278,6 +278,13 @@ db_find(Db, Key) ->
 db_find(Db, Txn, Key) ->
   ham_nifs:db_find(Db, Txn, Key).
 
+%% @doc Lookup of a Key; returns the associated value from the Database.
+%% This wraps the native ham_db_find function. It returns key AND record!
+-spec db_find(db(), txn() | undefined, binary(), [db_find_flag()]) ->
+  {ok, binary(), binary()} | {error, atom()}.
+db_find(Db, Txn, Key, Flags) ->
+  ham_nifs:db_find_flags(Db, Txn, Key, find_db_flags(Flags, 0)).
+
 
 
 %% @doc Begins a new Transaction.
@@ -472,6 +479,8 @@ env_create_db_flags([Flag | Tail], Acc) ->
       env_open_flags(Tail, Acc);
     enable_duplicate_keys ->
       env_open_flags(Tail, Acc bor 16#04000);
+    force_records_inline ->
+      env_open_flags(Tail, Acc bor 16#800000);
     record_number32 ->
       env_open_flags(Tail, Acc bor 16#01000);
     record_number ->
@@ -500,6 +509,22 @@ insert_db_flags([Flag | Tail], Acc) ->
       insert_db_flags(Tail, Acc bor 16#00001);
     duplicate ->
       insert_db_flags(Tail, Acc bor 16#00002)
+  end.
+
+find_db_flags([], Acc) ->
+  Acc;
+find_db_flags([Flag | Tail], Acc) ->
+  case Flag of
+    undefined ->
+      find_db_flags(Tail, Acc);
+    gt_match ->
+      find_db_flags(Tail, Acc bor 16#2000);
+    lt_match ->
+      find_db_flags(Tail, Acc bor 16#1000);
+    geq_match ->
+      find_db_flags(Tail, Acc bor 16#6000);
+    leq_match ->
+      find_db_flags(Tail, Acc bor 16#5000)
   end.
 
 txn_begin_flags([], Acc) ->

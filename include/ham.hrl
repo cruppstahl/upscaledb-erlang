@@ -58,6 +58,7 @@
 -type env_create_db_flag() ::
    undefined
    | enable_duplicate_keys
+   | force_records_inline %% for testing
    | record_number %% deprecated, use record_number64 instead
    | record_number32
    | record_number64.
@@ -70,6 +71,13 @@
    undefined
    | overwrite
    | duplicate.
+
+-type db_find_flag() ::
+   undefined
+   | geq_match
+   | leq_match
+   | gt_match
+   | lt_match.
 
 -type txn_begin_flag() ::
    undefined
