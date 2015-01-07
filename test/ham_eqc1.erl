@@ -50,18 +50,15 @@ initial_state() ->
 % ham_env_create_db ---------------------------------
 
 create_db_flags() ->
-  [elements([undefined, enable_duplicate_keys, record_number])].
+  [oneof([undefined, enable_duplicate_keys])].
 
 create_db_parameters() ->
-  [
-    {record_size, record_size_gen()},
+  [{record_size, record_size_gen()}] ++
       frequency([
-        {1, [{key_type, ?HAM_TYPE_BINARY},
-             {key_size, key_size_gen()} ]},
-        {2, {key_type, elements([?HAM_TYPE_UINT8, ?HAM_TYPE_UINT16,
+        {1, [{key_type, ?HAM_TYPE_BINARY}, {key_size, key_size_gen()}]},
+        {2, [{key_type, oneof([?HAM_TYPE_UINT8, ?HAM_TYPE_UINT16,
                                  ?HAM_TYPE_UINT32, ?HAM_TYPE_UINT64,
-                                 ?HAM_TYPE_REAL32, ?HAM_TYPE_REAL64])}}])
-  ].
+                                 ?HAM_TYPE_REAL32, ?HAM_TYPE_REAL64])}]}]).
 
 record_size_gen() ->
   oneof([choose(0, 32),
@@ -225,7 +222,7 @@ db_close_next(State, _Result, [{DbName, _DbHandle}]) ->
   State#state{open = lists:keydelete(DbName, 1, State#state.open)}.
 
 env_flags() ->
-  list(elements([cache_unlimited, enable_recovery])).
+  list(oneof([undefined, enable_recovery])).
 
 env_parameters() ->
   list(elements([{cache_size, 1000000}])).

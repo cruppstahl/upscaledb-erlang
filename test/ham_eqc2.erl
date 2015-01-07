@@ -55,15 +55,12 @@ create_db_flags() ->
   [elements([undefined, enable_duplicate_keys])].
 
 create_db_parameters() ->
-  [
-    {record_size, record_size_gen()},
+  [{record_size, record_size_gen()}] ++
       frequency([
-        {1, [{key_type, ?HAM_TYPE_BINARY},
-             {key_size, key_size_gen()} ]},
-        {2, {key_type, elements([?HAM_TYPE_UINT8, ?HAM_TYPE_UINT16,
+        {1, [{key_type, ?HAM_TYPE_BINARY}, {key_size, key_size_gen()}]},
+        {2, [{key_type, oneof([?HAM_TYPE_UINT8, ?HAM_TYPE_UINT16,
                                  ?HAM_TYPE_UINT32, ?HAM_TYPE_UINT64,
-                                 ?HAM_TYPE_REAL32, ?HAM_TYPE_REAL64])}}])
-  ].
+                                 ?HAM_TYPE_REAL32, ?HAM_TYPE_REAL64])}]}]).
 
 record_size_gen() ->
   oneof([choose(0, 32),
@@ -292,7 +289,7 @@ db_find_pre(State) ->
   length(State#state.open_dbs) > 0.
 
 db_find_command(State) ->
-  {call, ?MODULE, db_find, [erase_params(State)]}.
+  {call, ?MODULE, db_find, [find_params(State)]}.
 
 db_find({{_DbName, DbHandle}, Key}) ->
   ham:db_find(DbHandle, Key).
