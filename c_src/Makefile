@@ -1,6 +1,6 @@
 TAR			?= tar
 GUNZIP		?= gunzip
-HAMSTER_VER = 2.1.10
+HAMSTER_VER = 2.1.11
 
 all: dist
 

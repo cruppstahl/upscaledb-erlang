@@ -36,9 +36,8 @@ run_test_() ->
 db1() ->
   %% First step: create a new Environment
   {ok, Env1} = ham:env_create("test.db"),
-  %% Then create a Database in this Environment with the name '1', and for
-  %% uint32 keys
-  {ok, Db1} = ham:env_create_db(Env1, 1, [], [{key_type, ?HAM_TYPE_UINT32}]),
+  %% Then create a Database in this Environment with the name '1'
+  {ok, Db1} = ham:env_create_db(Env1, 1),
   %% Now insert 10 key/value pairs
   lists:foreach(fun(I) -> ok = ham:db_insert(Db1, 
                                          list_to_binary(integer_to_list(I)),
