@@ -1,15 +1,15 @@
-hamsterdb-erlang 2.1.9                              Fr 7. Nov 15:00:58 CET 2014
+upscaledb-erlang 2.1.9                              Fr 7. Nov 15:00:58 CET 2014
 
-(C) Christoph Rupp, chris@crupp.de; http://www.hamsterdb.com
+(C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
-hamsterdb-erlang
+upscaledb-erlang
 ================
 
-An erlang driver for hamsterdb.
+An erlang driver for upscaledb.
 
 === Introduction ===
 
-This is the official erlang driver for hamsterdb. It's a NIFS based
+This is the official erlang driver for upscaledb. It's a NIFS based
 implementation including samples and eqc (Erlang QuickCheck) tests.
 
 === Installation ===
@@ -39,32 +39,31 @@ modelled *very* closely after the native API, I recommend using the native
 API's documentation whenever the erlang documentation is not sufficient. You
 can find it here:
 
-    http://hamsterdb.com/scripts/html_www/index.html
+    http://files.upscaledb.com/documentation/html/
 
-Also, you will find several samples in `src/ham_tests.erl`. They should
+Also, you will find several samples in `src/ups_tests.erl`. They should
 provide a good starting point.
 
 === Licensing ===
 
-The erlang driver is released under the Apache Public License (APL) 2.0, just
-like hamsterdb. The APL allows unrestricted use for commercial and
-non-commercial applications. See the file COPYING for more information.
+The erlang driver is released under the GNU Public License (GPL) 3.0, just
+like upscaledb. See the file COPYING for more information.
 
-A commercial, closed source version hamsterdb pro with additional functionality
-is available on request. See http://hamsterdb.com for more information.
+A commercial, proprietary license for upscaledb is available on request.
+See http://upscaledb.com for more information.
 
 === Thanks ===
 
 This library is based on and was inspired by Kevin Smith's "hammy"
 (https://github.com/kevsmith/hammy), which is no longer maintained but
-nevertheless was extremely helpful for me when developing the new Erlang
+nevertheless was extremely helpful to me when developing the new Erlang
 driver from scratch.
 
 === Contact ===
 
-Author of hamsterdb Embedded Storage is
+Author of upscaledb is
     Christoph Rupp
     Paul-Preuss-Str. 63
     80995 Muenchen/Germany
     email: chris@crupp.de
-    web: http://www.hamsterdb.com
+    web: http://www.upscaledb.com

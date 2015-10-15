@@ -1,5 +1,5 @@
 %%
-%% Copyright (C) 2005-2014 Christoph Rupp (chris@crupp.de).
+%% Copyright (C) 2005-2015 Christoph Rupp (chris@crupp.de).
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -16,16 +16,16 @@
 
 -export_type([env/0, db/0, txn/0, cursor/0]).
 
--define(HAM_TYPE_BINARY, 0).
--define(HAM_TYPE_CUSTOM, 1).
--define(HAM_TYPE_UINT8, 3).
--define(HAM_TYPE_UINT16, 5).
--define(HAM_TYPE_UINT32, 7).
--define(HAM_TYPE_UINT64, 9).
--define(HAM_TYPE_REAL32, 11).
--define(HAM_TYPE_REAL64, 12).
--define(HAM_KEY_SIZE_UNLIMITED, 16#ffff).
--define(HAM_RECORD_SIZE_UNLIMITED, 16#ffffffff).
+-define(UPS_TYPE_BINARY, 0).
+-define(UPS_TYPE_CUSTOM, 1).
+-define(UPS_TYPE_UINT8, 3).
+-define(UPS_TYPE_UINT16, 5).
+-define(UPS_TYPE_UINT32, 7).
+-define(UPS_TYPE_UINT64, 9).
+-define(UPS_TYPE_REAL32, 11).
+-define(UPS_TYPE_REAL64, 12).
+-define(UPS_KEY_SIZE_UNLIMITED, 16#ffff).
+-define(UPS_RECORD_SIZE_UNLIMITED, 16#ffffffff).
 
 -type env() :: term().
 -type db() :: term().

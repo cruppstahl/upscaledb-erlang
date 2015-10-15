@@ -1,12 +1,12 @@
-{application, hamsterdb,
+{application, upscaledb,
  [
-  {description, "An erlang driver for hamsterdb (http://hamsterdb.com)"},
+  {description, "An erlang driver for upscaledb (http://upscaledb.com)"},
   {vsn, "1"},
   {registered, []},
   {applications, [
                   kernel,
                   stdlib
                  ]},
-  {mod, { hamsterdb_app, []}},
+%%  {mod, { upscaledb_app, []}},
   {env, []}
  ]}.

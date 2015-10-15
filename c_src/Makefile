@@ -1,22 +1,23 @@
 TAR			?= tar
 GUNZIP		?= gunzip
-HAMSTER_VER = 2.1.11
+VERSION     = 2.1.12
 
 all: dist
 
-dist: hamsterdb-$(HAMSTER_VER).tar.gz libhamsterdb.a
-	#@rm -rf hamsterdb-$(HAMSTER_VER)
+dist: upscaledb-$(VERSION).tar.gz libupscaledb.a
+	#@rm -rf upscaledb-$(VERSION)
 
-hamsterdb-$(HAMSTER_VER).tar.gz:
-	wget -nv http://files.hamsterdb.com/dl/hamsterdb-$(HAMSTER_VER).tar.gz
+upscaledb-$(VERSION).tar.gz:
+	#cp ~/tmp/upscaledb-$(VERSION).tar.gz .
+	wget -nv http://files.upscaledb.com/dl/upscaledb-$(VERSION).tar.gz
 
-libhamsterdb.a:
-	$(GUNZIP) -c hamsterdb-$(HAMSTER_VER).tar.gz | $(TAR) xf -
-	cd hamsterdb-$(HAMSTER_VER); CFLAGS="-fPIC" ./configure --without-tcmalloc --disable-remote --disable-encryption
-	make -j 4 -C hamsterdb-$(HAMSTER_VER)
-	cp hamsterdb-$(HAMSTER_VER)/src/.libs/libhamsterdb.a .
-	mkdir include; cp -R hamsterdb-$(HAMSTER_VER)/include/ham include
+libupscaledb.a:
+	$(GUNZIP) -c upscaledb-$(VERSION).tar.gz | $(TAR) xf -
+	cd upscaledb-$(VERSION); CFLAGS="-fPIC" ./configure --without-tcmalloc --disable-remote --disable-encryption
+	make -j 4 -C upscaledb-$(VERSION)
+	cp upscaledb-$(VERSION)/src/.libs/libupscaledb.a .
+	mkdir include; cp -R upscaledb-$(VERSION)/include/ups include
 
 clean:
-	rm -rf hamsterdb-$(HAMSTER_VER) include
-	rm -f libhamsterdb.a
+	rm -rf upscaledb-$(VERSION) include
+	rm -f libupscaledb.a

@@ -2,4 +2,7 @@
 hamsterdb-*
 hamsterdb-*.tar.gz
 libhamster*
+libupscaledb*
 include
+upscaledb-*
+libupscaledb

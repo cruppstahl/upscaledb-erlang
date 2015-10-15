@@ -16,7 +16,7 @@ dialyzer: compile
 
 test eunit: compile
 	./rebar eunit
-	# LD_LIBRARY_PATH=priv erl -pa ebin -s ham_eqc2 test -s init stop
+	# LD_LIBRARY_PATH=priv erl -pa ebin -s ups_eqc2 test -s init stop
 
 eqc: compile
 	./rebar eqc
