@@ -1,4 +1,4 @@
-upscaledb-erlang 2.1.9                              Fr 7. Nov 15:00:58 CET 2014
+upscaledb-erlang 2.1.12                             Fr 7. Nov 15:00:58 CET 2015
 
 (C) Christoph Rupp, chris@crupp.de; http://www.upscaledb.com
 
