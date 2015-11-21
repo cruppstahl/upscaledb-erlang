@@ -1,1 +1,1 @@
-Please see `src/ups_tests.erl` for samples.
+Please see `test/ups_tests.erl` for samples.
