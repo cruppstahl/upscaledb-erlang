@@ -223,7 +223,7 @@ get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ups_parameter_t *parameters,
     }
     if (!strcmp(atom, "log_directory")) {
       parameters[i].name = UPS_PARAM_LOG_DIRECTORY;
-      if (!enif_get_string(env, array[1], logdir_buf, MAX_STRING,
+      if (enif_get_string(env, array[1], logdir_buf, MAX_STRING,
               ERL_NIF_LATIN1) <= 0)
         return (0);
       parameters[i].value = *(ups_u64_t *)logdir_buf;
@@ -232,7 +232,7 @@ get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ups_parameter_t *parameters,
     }
     if (!strcmp(atom, "encryption_key")) {
       parameters[i].name = UPS_PARAM_ENCRYPTION_KEY;
-      if (!enif_get_string(env, array[1], aeskey_buf, MAX_STRING,
+      if (enif_get_string(env, array[1], aeskey_buf, MAX_STRING,
               ERL_NIF_LATIN1) <= 0)
         return (0);
       parameters[i].value = *(ups_u64_t *)aeskey_buf;
