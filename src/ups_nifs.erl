@@ -35,6 +35,7 @@
      txn_abort/1,
      txn_commit/1,
      env_close/1,
+     select_range/4,
      cursor_create/2,
      cursor_clone/1, 
      cursor_move/2, 
@@ -44,7 +45,15 @@
      cursor_erase/1, 
      cursor_get_duplicate_count/1,
      cursor_get_record_size/1,
-     cursor_close/1]).
+     cursor_close/1,
+     result_get_row_count/1,
+     result_get_key_type/1,
+     result_get_record_type/1,
+     result_get_key/2,
+     result_get_record/2,
+     result_get_key_data/1,
+     result_get_record_data/1,
+     result_close/1]).
 
 -define(MISSING_NIF, {error, missing_nif}).
 -define(NIF_API_VERSION, 1).
@@ -109,6 +118,9 @@ txn_abort(_Txn) ->
 env_close(_Env) ->
   throw(?MISSING_NIF).
 
+select_range(_Env, _Query, _Begin, _End) ->
+  throw(?MISSING_NIF).
+
 cursor_create(_Env, _Txn) ->
   throw(?MISSING_NIF).
 
@@ -137,5 +149,29 @@ cursor_get_record_size(_Cursor) ->
   throw(?MISSING_NIF).
 
 cursor_close(_Cursor) ->
+  throw(?MISSING_NIF).
+
+result_get_row_count(_Result) ->
+  throw(?MISSING_NIF).
+
+result_get_key_type(_Result) ->
+  throw(?MISSING_NIF).
+
+result_get_record_type(_Result) ->
+  throw(?MISSING_NIF).
+
+result_get_key(_Result, _Row) ->
+  throw(?MISSING_NIF).
+
+result_get_record(_Result, _Row) ->
+  throw(?MISSING_NIF).
+
+result_get_key_data(_Result) ->
+  throw(?MISSING_NIF).
+
+result_get_record_data(_Result) ->
+  throw(?MISSING_NIF).
+
+result_close(_Result) ->
   throw(?MISSING_NIF).
 

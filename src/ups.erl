@@ -37,6 +37,7 @@
    env_open_db/2, env_open_db/3, env_open_db/4,
    env_rename_db/3,
    env_erase_db/2,
+   select_range/2, select_range/3, select_range/4,
    db_insert/3, db_insert/4, db_insert/5,
    db_erase/2, db_erase/3,
    db_find/2, db_find/3, db_find/4,
@@ -54,7 +55,15 @@
    cursor_get_duplicate_count/1,
    cursor_get_record_size/1,
    cursor_close/1,
-   env_close/1]).
+   env_close/1,
+   result_get_row_count/1,
+   result_get_key_type/1,
+   result_get_record_type/1,
+   result_get_key/2,
+   result_get_record/2,
+   result_get_key_data/1,
+   result_get_record_data/1,
+   result_close/1]).
 
 
 
@@ -210,6 +219,29 @@ env_erase_db(Env, Dbname) ->
   ups_nifs:env_erase_db(Env, Dbname).
 
 
+
+%% @doc Performs a "UQI Select" query.
+%% This wraps the native uqi_select_range function.
+-spec select_range(env(), string()) ->
+  {ok, binary()} | {error, atom()}.
+select_range(Env, Query) ->
+  ups_nifs:select_range(Env, Query, undefined, undefined).
+
+%% @doc Performs a "UQI Select" query.
+%% Specifies a "begin" cursor.
+%% This wraps the native uqi_select_range function.
+-spec select_range(env(), string(), binary()) ->
+  {ok, binary()} | {error, atom()}.
+select_range(Env, Query, Begin) ->
+  ups_nifs:select_range(Env, Query, Begin, undefined).
+
+%% @doc Performs a "UQI Select" query.
+%% Specifies a "begin" and an "end" cursor.
+%% This wraps the native uqi_select_range function.
+-spec select_range(env(), string(), binary(), binary()) ->
+  {ok, binary()} | {error, atom()}.
+select_range(Env, Query, Begin, End) ->
+  ups_nifs:select_range(Env, Query, Begin, End).
 
 %% @doc Closes a Database handle.
 %% This wraps the native ups_db_close function.
@@ -403,6 +435,54 @@ cursor_get_record_size(Cursor) ->
   ok | {error, atom()}.
 cursor_close(Cursor) ->
   ups_nifs:cursor_close(Cursor).
+
+%% @doc Returns the row count of an UQI result
+-spec result_get_row_count(result()) ->
+  {ok, integer()} | {error, atom()}.
+result_get_row_count(Result) ->
+  ups_nifs:result_get_row_count(Result).
+
+%% @doc Returns the key type of an UQI result
+-spec result_get_key_type(result()) ->
+  {ok, integer()} | {error, atom()}.
+result_get_key_type(Result) ->
+  ups_nifs:result_get_key_type(Result).
+
+%% @doc Returns the record type of an UQI result
+-spec result_get_record_type(result()) ->
+  {ok, integer()} | {error, atom()}.
+result_get_record_type(Result) ->
+  ups_nifs:result_get_record_type(Result).
+
+%% @doc Returns a specific key of an UQI result
+-spec result_get_key(result(), integer()) ->
+  {ok, binary()} | {error, atom()}.
+result_get_key(Result, Row) ->
+  ups_nifs:result_get_key(Result, Row).
+
+%% @doc Returns a specific record of an UQI result
+-spec result_get_record(result(), integer()) ->
+  {ok, binary()} | {error, atom()}.
+result_get_record(Result, Row) ->
+  ups_nifs:result_get_record(Result, Row).
+
+%% @doc Returns a binary with all keys
+-spec result_get_key_data(result()) ->
+  {ok, binary()} | {error, atom()}.
+result_get_key_data(Result) ->
+  ups_nifs:result_get_key_data(Result).
+
+%% @doc Returns a binary with all records
+-spec result_get_record_data(result()) ->
+  {ok, binary()} | {error, atom()}.
+result_get_record_data(Result) ->
+  ups_nifs:result_get_record_data(Result).
+
+%% @doc Deletes all resources assigned to a Result object
+-spec result_close(result()) ->
+  ok | {error, atom()}.
+result_close(Result) ->
+  ups_nifs:result_close(Result).
 
 %% Private functions
 

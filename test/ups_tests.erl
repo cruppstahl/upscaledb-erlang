@@ -26,7 +26,9 @@ run_test_() ->
     ?_test(db1()),
     ?_test(env1()),
     ?_test(txn1()),
-    ?_test(cursor1())
+    ?_test(cursor1()),
+    ?_test(uqi1()),
+    ?_test(uqi2())
    ]}.
 
 %%
@@ -178,4 +180,72 @@ cursor1() ->
   ok = ups:env_close(Env1),
   true.
 
+%%
+%% This test demonstrates the UQI (upscaledb query interface).
+%%
+uqi1() ->
+  %% First step: create a new Environment
+  {ok, Env1} = ups:env_create("test.db", []),
+  %% Then create a Databases in this Environment
+  {ok, Db1} = ups:env_create_db(Env1, 1),
+  ok = ups:db_insert(Db1, <<"foo1">>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<"foo2">>, <<"value2">>),
+  ok = ups:db_insert(Db1, <<"foo3">>, <<"value3">>),
+  ok = ups:db_insert(Db1, <<"foo4">>, <<"value4">>),
+  ok = ups:db_insert(Db1, <<"foo5">>, <<"value5">>),
+  %% Now count them with UQI
+  {ok, Result} = ups:select_range(Env1, "COUNT($key) from database 1"),
+  %% We will have one result (a 64bit integer) with the actual counter
+  {ok, 1} = ups:result_get_row_count(Result),
+  {ok, ?UPS_TYPE_UINT64} = ups:result_get_record_type(Result),
+  {ok, <<5:64/little>>} = ups:result_get_record(Result, 0),
+  %% Clean up
+  ok = ups:result_close(Result),
+  ok = ups:db_close(Db1),
+  ok = ups:env_close(Env1),
+  true.
+
+%%
+%% This test demonstrates the pagination features of UQI
+%% (upscaledb query interface).
+%%
+uqi2() ->
+  %% First step: create a new Environment
+  {ok, Env1} = ups:env_create("test.db", []),
+  %% Then create a Databases in this Environment
+  {ok, Db1} = ups:env_create_db(Env1, 1, [], [{key_type, ?UPS_TYPE_UINT32}]),
+  ok = ups:db_insert(Db1, <<1:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<2:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<3:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<4:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<5:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<6:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<7:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<8:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<9:32/little>>, <<"value1">>),
+  ok = ups:db_insert(Db1, <<10:32/little>>, <<"value1">>),
+  %% Now aggregate them with UQI
+  {ok, Result} = ups:select_range(Env1, "SUM($key) from database 1"),
+  %% We will have one result (a 64bit integer) with the aggregated sum
+  {ok, 1} = ups:result_get_row_count(Result),
+  {ok, ?UPS_TYPE_UINT64} = ups:result_get_record_type(Result),
+  {ok, <<55:64/little>>} = ups:result_get_record(Result, 0),
+
+  %% Now create a cursor and only aggregate the second half
+  {ok, Cursor} = ups:cursor_create(Db1),
+  {ok, _} = ups:cursor_find(Cursor, <<5:32/little>>),
+
+  {ok, Result2} = ups:select_range(Env1, "SUM($key) from database 1", Cursor),
+  {ok, <<45:64/little>>} = ups:result_get_record(Result2, 0),
+
+  %% The cursor was now moved to the end of the database
+  {error, key_not_found} = ups:cursor_move(Cursor, [next]),
+
+  %% Clean up
+  ok = ups:cursor_close(Cursor),
+  ok = ups:result_close(Result),
+  ok = ups:result_close(Result2),
+  ok = ups:db_close(Db1),
+  ok = ups:env_close(Env1),
+  true.
 -endif.

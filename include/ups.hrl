@@ -14,7 +14,7 @@
 %% limitations under the License.
 %%
 
--export_type([env/0, db/0, txn/0, cursor/0]).
+-export_type([env/0, db/0, txn/0, cursor/0, result/0]).
 
 -define(UPS_TYPE_BINARY, 0).
 -define(UPS_TYPE_CUSTOM, 1).
@@ -31,6 +31,7 @@
 -type db() :: term().
 -type txn() :: term().
 -type cursor() :: term().
+-type result() :: term().
 
 -type env_create_flag() ::
    undefined
