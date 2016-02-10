@@ -1,6 +1,6 @@
 TAR			?= tar
 GUNZIP		?= gunzip
-VERSION     = 2.1.12
+VERSION     = 2.1.13
 
 all: dist
 
