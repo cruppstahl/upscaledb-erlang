@@ -1,6 +1,6 @@
 TAR			?= tar
 GUNZIP		?= gunzip
-VERSION     = 2.1.13
+VERSION     = 2.2.0
 
 all: dist
 
@@ -8,7 +8,9 @@ dist: upscaledb-$(VERSION).tar.gz libupscaledb.a
 	#@rm -rf upscaledb-$(VERSION)
 
 upscaledb-$(VERSION).tar.gz:
-	#cp ~/tmp/upscaledb-$(VERSION).tar.gz .
+	#cp -r ~/prj/upscaledb .
+	#mv upscaledb upscaledb-2.2.0
+	#cd upscaledb-2.2.0 && git checkout topic/2.2.0 && cd ..
 	wget -nv http://files.upscaledb.com/dl/upscaledb-$(VERSION).tar.gz
 
 libupscaledb.a:

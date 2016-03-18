@@ -26,7 +26,8 @@ run_test_() ->
     ?_test(db1()),
     ?_test(env1()),
     ?_test(txn1()),
-    ?_test(cursor1())
+    ?_test(cursor1()),
+    ?_test(uqi1())
    ]}.
 
 %%
@@ -174,6 +175,42 @@ cursor1() ->
 
   %% Clean up
   ok = ups:cursor_close(Cursor1),
+  ok = ups:db_close(Db1),
+  ok = ups:env_close(Env1),
+  true.
+
+%%
+%% This test performs a couple of UQI queries.
+%%
+uqi1() ->
+  %% First step: create a new Environment
+  {ok, Env1} = ups:env_create("test.db"),
+  %% Then create a Database in this Environment with the name '1', storing
+  %% 32bit integers as records
+  {ok, Db1} = ups:env_create_db(Env1, 1, [], [{record_type, ?UPS_TYPE_UINT32}]),
+
+  %% Now insert 10000 key/value pairs
+  lists:foreach(fun(I) ->
+                        V = 50 + I rem 30,
+                        ok = ups:db_insert(Db1, <<I:32>>, <<V:32>>)
+                end, lists:seq(1, 10000)),
+
+  %% Retrieve the maximum record value
+  {ok, Result1} = ups:uqi_select_range(Env1, "MAX($record) FROM DATABASE 1"),
+  ?assertEqual({ok, 1}, ups:uqi_result_get_row_count(Result1)),
+  ?assertEqual({ok, 0}, ups:uqi_result_get_key_type(Result1)),
+  ?assertEqual({ok, 7}, ups:uqi_result_get_record_type(Result1)),
+  ?assertEqual({ok,<<0,0,0,79>>}, ups:uqi_result_get_record(Result1, 0)),
+  ok = ups:uqi_result_close(Result1),
+
+  %% Retrieve the minimum record value
+  {ok, Result2} = ups:uqi_select_range(Env1, "MIN($record) FROM DATABASE 1"),
+  ?assertEqual({ok, 1}, ups:uqi_result_get_row_count(Result2)),
+  ?assertEqual({ok, 0}, ups:uqi_result_get_key_type(Result2)),
+  ?assertEqual({ok, 7}, ups:uqi_result_get_record_type(Result2)),
+  ?assertEqual({ok,<<0,0,0,50>>}, ups:uqi_result_get_record(Result2, 0)),
+  ok = ups:uqi_result_close(Result2),
+
   ok = ups:db_close(Db1),
   ok = ups:env_close(Env1),
   true.

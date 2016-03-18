@@ -54,7 +54,15 @@
    cursor_get_duplicate_count/1,
    cursor_get_record_size/1,
    cursor_close/1,
-   env_close/1]).
+   env_close/1,
+   uqi_select_range/2, uqi_select_range/3, uqi_select_range/4,
+   uqi_result_get_row_count/1,
+   uqi_result_get_key_type/1,
+   uqi_result_get_record_type/1,
+   uqi_result_get_key/2,
+   uqi_result_get_record/2,
+   uqi_result_close/1
+   ]).
 
 
 
@@ -403,6 +411,69 @@ cursor_get_record_size(Cursor) ->
   ok | {error, atom()}.
 cursor_close(Cursor) ->
   ups_nifs:cursor_close(Cursor).
+
+%% @doc Performs a range select over a database.
+%% This wraps the native uqi_select_range function.
+-spec uqi_select_range(env(), string()) ->
+  {ok, result()} | {error, atom()}.
+uqi_select_range(Env, Query) ->
+  ups_nifs:uqi_select_range(Env, Query, undefined, undefined).
+
+%% @doc Performs a range select over a database.
+%% This wraps the native uqi_select_range function.
+-spec uqi_select_range(env(), string(), cursor()) ->
+  {ok, result()} | {error, atom()}.
+uqi_select_range(Env, Query, Cursor) ->
+  ups_nifs:uqi_select_range(Env, Query, Cursor, undefined).
+
+%% @doc Performs a range select over a database.
+%% This wraps the native uqi_select_range function.
+-spec uqi_select_range(env(), string(), cursor(), cursor()) ->
+  {ok, result()} | {error, atom()}.
+uqi_select_range(Env, Query, Cursor1, Cursor2) ->
+  ups_nifs:uqi_select_range(Env, Query, Cursor1, Cursor2).
+
+%% @doc Returns the number of rows stored in an UQI result.
+%% This wraps the native uqi_result_get_row_count function.
+-spec uqi_result_get_row_count(result()) ->
+  {ok, integer()} | {error, atom()}.
+uqi_result_get_row_count(Result) ->
+  ups_nifs:uqi_result_get_row_count(Result).
+
+%% @doc Returns the key type of an UQI result set.
+%% This wraps the native uqi_result_get_key_type function.
+-spec uqi_result_get_key_type(result()) ->
+  {ok, integer()} | {error, atom()}.
+uqi_result_get_key_type(Result) ->
+  ups_nifs:uqi_result_get_key_type(Result).
+
+%% @doc Returns the record type of an UQI result set.
+%% This wraps the native uqi_result_get_record_type function.
+-spec uqi_result_get_record_type(result()) ->
+  {ok, integer()} | {error, atom()}.
+uqi_result_get_record_type(Result) ->
+  ups_nifs:uqi_result_get_record_type(Result).
+
+%% @doc Returns a key of an UQI result set.
+%% This wraps the native uqi_result_get_key function.
+-spec uqi_result_get_key(result(), integer()) ->
+  {ok, binary()} | {error, atom()}.
+uqi_result_get_key(Result, Row) ->
+  ups_nifs:uqi_result_get_key(Result, Row).
+
+%% @doc Returns a record of an UQI result set.
+%% This wraps the native uqi_result_get_record function.
+-spec uqi_result_get_record(result(), integer()) ->
+  {ok, binary()} | {error, atom()}.
+uqi_result_get_record(Result, Row) ->
+  ups_nifs:uqi_result_get_record(Result, Row).
+
+%% @doc Closes an UQI result set.
+%% This wraps the native uqi_result_close function.
+-spec uqi_result_close(result()) ->
+  ok | {error, atom()}.
+uqi_result_close(Result) ->
+  ups_nifs:uqi_result_close(Result).
 
 %% Private functions
 

@@ -44,7 +44,15 @@
      cursor_erase/1, 
      cursor_get_duplicate_count/1,
      cursor_get_record_size/1,
-     cursor_close/1]).
+     cursor_close/1,
+     uqi_select_range/4,
+     uqi_result_get_row_count/1,
+     uqi_result_get_key_type/1,
+     uqi_result_get_record_type/1,
+     uqi_result_get_key/2,
+     uqi_result_get_record/2,
+     uqi_result_close/1
+    ]).
 
 -define(MISSING_NIF, {error, missing_nif}).
 -define(NIF_API_VERSION, 1).
@@ -137,5 +145,26 @@ cursor_get_record_size(_Cursor) ->
   throw(?MISSING_NIF).
 
 cursor_close(_Cursor) ->
+  throw(?MISSING_NIF).
+
+uqi_select_range(_Env, _Query, _Cursor1, _Cursor2) ->
+  throw(?MISSING_NIF).
+
+uqi_result_get_row_count(_Result) ->
+  throw(?MISSING_NIF).
+
+uqi_result_get_key_type(_Result) ->
+  throw(?MISSING_NIF).
+
+uqi_result_get_record_type(_Result) ->
+  throw(?MISSING_NIF).
+
+uqi_result_get_key(_Result, _Row) ->
+  throw(?MISSING_NIF).
+
+uqi_result_get_record(_Result, _Row) ->
+  throw(?MISSING_NIF).
+
+uqi_result_close(_Result) ->
   throw(?MISSING_NIF).
 

@@ -19,6 +19,7 @@
 
 #include "erl_nif_compat.h"
 #include "ups/upscaledb.h"
+#include "ups/upscaledb_uqi.h"
 
 ERL_NIF_TERM g_atom_ok;
 ERL_NIF_TERM g_atom_error;
@@ -28,6 +29,7 @@ ErlNifResourceType *g_ups_env_resource;
 ErlNifResourceType *g_ups_db_resource;
 ErlNifResourceType *g_ups_txn_resource;
 ErlNifResourceType *g_ups_cursor_resource;
+ErlNifResourceType *g_ups_result_resource;
 
 struct env_wrapper {
   ups_env_t *env;
@@ -46,6 +48,11 @@ struct txn_wrapper {
 
 struct cursor_wrapper {
   ups_cursor_t *cursor;
+  bool is_closed;
+};
+
+struct result_wrapper {
+  uqi_result_t *result;
   bool is_closed;
 };
 
@@ -221,12 +228,19 @@ get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ups_parameter_t *parameters,
       i++;
       continue;
     }
+    if (!strcmp(atom, "record_type")) {
+      parameters[i].name = UPS_PARAM_RECORD_TYPE;
+      if (!enif_get_uint64(env, array[1], &parameters[i].value))
+        return (0);
+      i++;
+      continue;
+    }
     if (!strcmp(atom, "log_directory")) {
       parameters[i].name = UPS_PARAM_LOG_DIRECTORY;
       if (enif_get_string(env, array[1], logdir_buf, MAX_STRING,
               ERL_NIF_LATIN1) <= 0)
         return (0);
-      parameters[i].value = *(ups_u64_t *)logdir_buf;
+      parameters[i].value = *(uint64_t *)logdir_buf;
       i++;
       continue;
     }
@@ -235,7 +249,7 @@ get_parameters(ErlNifEnv *env, ERL_NIF_TERM term, ups_parameter_t *parameters,
       if (enif_get_string(env, array[1], aeskey_buf, MAX_STRING,
               ERL_NIF_LATIN1) <= 0)
         return (0);
-      parameters[i].value = *(ups_u64_t *)aeskey_buf;
+      parameters[i].value = *(uint64_t *)aeskey_buf;
       i++;
       continue;
     }
@@ -299,8 +313,8 @@ ERL_NIF_TERM
 ups_nifs_env_create(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ups_env_t *henv;
-  ups_u32_t flags = 0;
-  ups_u32_t mode = 0;
+  uint32_t flags = 0;
+  uint32_t mode = 0;
   char filename[MAX_STRING];
   ups_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
@@ -337,7 +351,7 @@ ERL_NIF_TERM
 ups_nifs_env_open(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ups_env_t *henv;
-  ups_u32_t flags;
+  uint32_t flags;
   char filename[MAX_STRING];
   ups_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
@@ -372,8 +386,8 @@ ERL_NIF_TERM
 ups_nifs_env_create_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ups_db_t *hdb;
-  ups_u32_t dbname;
-  ups_u32_t flags;
+  uint32_t dbname;
+  uint32_t flags;
   ups_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
   char aesdir_buf[MAX_STRING];
@@ -411,8 +425,8 @@ ERL_NIF_TERM
 ups_nifs_env_open_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ups_db_t *hdb;
-  ups_u32_t dbname;
-  ups_u32_t flags;
+  uint32_t dbname;
+  uint32_t flags;
   ups_parameter_t params[MAX_PARAMETERS] = {{0, 0}};
   char logdir_buf[MAX_STRING];
   char aesdir_buf[MAX_STRING];
@@ -449,7 +463,7 @@ ups_nifs_env_open_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 ERL_NIF_TERM
 ups_nifs_env_erase_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-  ups_u32_t dbname;
+  uint32_t dbname;
   env_wrapper *ewrapper;
 
   if (argc != 2)
@@ -468,10 +482,187 @@ ups_nifs_env_erase_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 }
 
 ERL_NIF_TERM
+ups_nifs_uqi_select_range(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
+{
+  char query[1024];
+  env_wrapper *ewrapper;
+  cursor_wrapper *cwrapper1;
+  cursor_wrapper *cwrapper2;
+  uqi_result_t *result;
+
+printf("%d\n", __LINE__);
+  if (argc != 4)
+    return (enif_make_badarg(env));
+printf("%d\n", __LINE__);
+  if (!enif_get_resource(env, argv[0], g_ups_env_resource, (void **)&ewrapper)
+          || ewrapper->is_closed)
+    return (enif_make_badarg(env));
+printf("%d\n", __LINE__);
+  if (enif_get_string(env, argv[1], query, sizeof(query), ERL_NIF_LATIN1) <= 0)
+    return (enif_make_badarg(env));
+printf("%d\n", __LINE__);
+  if (!enif_get_resource(env, argv[2], g_ups_cursor_resource,
+                          (void **)&cwrapper1)
+          || cwrapper1->is_closed)
+    cwrapper1 = 0;
+printf("%d\n", __LINE__);
+  if (!enif_get_resource(env, argv[3], g_ups_cursor_resource,
+                          (void **)&cwrapper2)
+          || cwrapper2->is_closed)
+    cwrapper2 = 0;
+printf("%d: '%s', %p, %p\n", __LINE__, query, cwrapper1, cwrapper2);
+
+  ups_status_t st = uqi_select_range(ewrapper->env, query,
+                 cwrapper1 ? cwrapper1->cursor : 0,
+                 cwrapper2 ? cwrapper2->cursor : 0,
+                 &result);
+printf("%d: %d\n", __LINE__, st);
+  if (st)
+    return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
+printf("%d\n", __LINE__);
+
+  result_wrapper *rwrapper = (result_wrapper *)enif_alloc_resource_compat(env,
+                                g_ups_result_resource, sizeof(*rwrapper));
+  rwrapper->result = result;
+  rwrapper->is_closed = false;
+  ERL_NIF_TERM retval = enif_make_resource(env, rwrapper);
+  enif_release_resource_compat(env, rwrapper);
+  return (enif_make_tuple2(env, g_atom_ok, retval));
+}
+
+ERL_NIF_TERM
+ups_nifs_uqi_result_get_row_count(ErlNifEnv *env, int argc,
+                const ERL_NIF_TERM argv[])
+{
+  result_wrapper *rwrapper;
+
+  if (argc != 1)
+    return (enif_make_badarg(env));
+  if (!enif_get_resource(env, argv[0], g_ups_result_resource,
+                          (void **)&rwrapper)
+          || rwrapper->is_closed)
+    return (enif_make_badarg(env));
+
+  uint32_t rc = uqi_result_get_row_count(rwrapper->result);
+  return (enif_make_tuple2(env, g_atom_ok, enif_make_int(env, (int)rc)));
+}
+
+ERL_NIF_TERM
+ups_nifs_uqi_result_get_key_type(ErlNifEnv *env, int argc,
+                const ERL_NIF_TERM argv[])
+{
+  result_wrapper *rwrapper;
+
+  if (argc != 1)
+    return (enif_make_badarg(env));
+  if (!enif_get_resource(env, argv[0], g_ups_result_resource,
+                          (void **)&rwrapper)
+          || rwrapper->is_closed)
+    return (enif_make_badarg(env));
+
+  uint32_t rc = uqi_result_get_key_type(rwrapper->result);
+  return (enif_make_tuple2(env, g_atom_ok, enif_make_int(env, (int)rc)));
+}
+
+ERL_NIF_TERM
+ups_nifs_uqi_result_get_record_type(ErlNifEnv *env, int argc,
+                const ERL_NIF_TERM argv[])
+{
+  result_wrapper *rwrapper;
+
+  if (argc != 1)
+    return (enif_make_badarg(env));
+  if (!enif_get_resource(env, argv[0], g_ups_result_resource,
+                          (void **)&rwrapper)
+          || rwrapper->is_closed)
+    return (enif_make_badarg(env));
+
+  uint32_t rc = uqi_result_get_record_type(rwrapper->result);
+  return (enif_make_tuple2(env, g_atom_ok, enif_make_int(env, (int)rc)));
+}
+
+ERL_NIF_TERM
+ups_nifs_uqi_result_get_key(ErlNifEnv *env, int argc,
+                const ERL_NIF_TERM argv[])
+{
+  int row;
+  result_wrapper *rwrapper;
+
+  if (argc != 2)
+    return (enif_make_badarg(env));
+  if (!enif_get_resource(env, argv[0], g_ups_result_resource,
+                          (void **)&rwrapper)
+          || rwrapper->is_closed)
+    return (enif_make_badarg(env));
+  if (!enif_get_int(env, argv[1], &row))
+    return (enif_make_badarg(env));
+
+  ups_key_t key = {0};
+  uqi_result_get_key(rwrapper->result, row, &key);
+
+  ErlNifBinary bin;
+  if (!enif_alloc_binary(key.size, &bin))
+    return (enif_make_tuple2(env, g_atom_error,
+                status_to_atom(env, UPS_OUT_OF_MEMORY)));
+  memcpy(bin.data, key.data, key.size);
+  bin.size = key.size;
+
+  return (enif_make_tuple2(env, g_atom_ok, enif_make_binary(env, &bin)));
+}
+
+ERL_NIF_TERM
+ups_nifs_uqi_result_get_record(ErlNifEnv *env, int argc,
+                const ERL_NIF_TERM argv[])
+{
+  int row;
+  result_wrapper *rwrapper;
+
+  if (argc != 2)
+    return (enif_make_badarg(env));
+  if (!enif_get_resource(env, argv[0], g_ups_result_resource,
+                          (void **)&rwrapper)
+          || rwrapper->is_closed)
+    return (enif_make_badarg(env));
+  if (!enif_get_int(env, argv[1], &row))
+    return (enif_make_badarg(env));
+
+  ups_record_t record = {0};
+  uqi_result_get_record(rwrapper->result, row, &record);
+
+  ErlNifBinary bin;
+  if (!enif_alloc_binary(record.size, &bin))
+    return (enif_make_tuple2(env, g_atom_error,
+                status_to_atom(env, UPS_OUT_OF_MEMORY)));
+  memcpy(bin.data, record.data, record.size);
+  bin.size = record.size;
+
+  return (enif_make_tuple2(env, g_atom_ok, enif_make_binary(env, &bin)));
+}
+
+ERL_NIF_TERM
+ups_nifs_uqi_result_close(ErlNifEnv *env, int argc,
+                const ERL_NIF_TERM argv[])
+{
+  result_wrapper *rwrapper;
+
+  if (argc != 1)
+    return (enif_make_badarg(env));
+  if (!enif_get_resource(env, argv[0], g_ups_result_resource,
+                          (void **)&rwrapper)
+          || rwrapper->is_closed)
+    return (enif_make_badarg(env));
+
+  uqi_result_close(rwrapper->result);
+  rwrapper->is_closed = true;
+
+  return (g_atom_ok);
+}
+
+ERL_NIF_TERM
 ups_nifs_env_rename_db(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
-  ups_u32_t oldname;
-  ups_u32_t newname;
+  uint32_t oldname;
+  uint32_t newname;
   env_wrapper *ewrapper;
 
   if (argc != 3)
@@ -496,7 +687,7 @@ ups_nifs_db_insert(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   ups_key_t key = {0};
   ups_record_t rec = {0};
-  ups_u32_t flags;
+  uint32_t flags;
   ErlNifBinary binkey;
   ErlNifBinary binrec;
   db_wrapper *dwrapper;
@@ -661,7 +852,7 @@ ERL_NIF_TERM
 ups_nifs_txn_begin(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   env_wrapper *ewrapper;
-  ups_u32_t flags;
+  uint32_t flags;
 
   if (argc != 2)
     return (enif_make_badarg(env));
@@ -825,7 +1016,7 @@ ERL_NIF_TERM
 ups_nifs_cursor_move(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
 {
   cursor_wrapper *cwrapper;
-  ups_u32_t flags;
+  uint32_t flags;
 
   if (argc != 2)
     return (enif_make_badarg(env));
@@ -927,7 +1118,7 @@ ups_nifs_cursor_insert(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   cursor_wrapper *cwrapper;
   ErlNifBinary binkey;
   ErlNifBinary binrec;
-  ups_u32_t flags;
+  uint32_t flags;
 
   if (argc != 4)
     return (enif_make_badarg(env));
@@ -988,7 +1179,7 @@ ups_nifs_cursor_get_duplicate_count(ErlNifEnv *env, int argc,
           || cwrapper->is_closed)
     return (enif_make_badarg(env));
 
-  ups_u32_t count;
+  uint32_t count;
   ups_status_t st = ups_cursor_get_duplicate_count(cwrapper->cursor, &count, 0);
   if (st)
     return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
@@ -1009,7 +1200,7 @@ ups_nifs_cursor_get_record_size(ErlNifEnv *env, int argc,
           || cwrapper->is_closed)
     return (enif_make_badarg(env));
 
-  ups_u64_t size;
+  uint32_t size;
   ups_status_t st = ups_cursor_get_record_size(cwrapper->cursor, &size);
   if (st)
     return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
@@ -1073,6 +1264,15 @@ cursor_resource_cleanup(ErlNifEnv *env, void *arg)
   cwrapper->is_closed = true;
 }
 
+static void
+result_resource_cleanup(ErlNifEnv *env, void *arg)
+{
+  result_wrapper *rwrapper = (result_wrapper *)arg;
+  if (!rwrapper->is_closed)
+    (void)uqi_result_close(rwrapper->result);
+  rwrapper->is_closed = true;
+}
+
 static int
 on_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
 {
@@ -1095,6 +1295,10 @@ on_load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM load_info)
                             0);
   g_ups_cursor_resource = enif_open_resource_type(env, NULL, "ups_cursor_resource",
                             &cursor_resource_cleanup,
+                            (ErlNifResourceFlags)(ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER),
+                            0);
+  g_ups_result_resource = enif_open_resource_type(env, NULL, "ups_result_resource",
+                            &result_resource_cleanup,
                             (ErlNifResourceFlags)(ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER),
                             0);
   return (0);
@@ -1130,6 +1334,13 @@ static ErlNifFunc ups_nif_funcs[] =
   {"cursor_get_duplicate_count", 1, ups_nifs_cursor_get_duplicate_count},
   {"cursor_get_record_size", 1, ups_nifs_cursor_get_record_size},
   {"cursor_close", 1, ups_nifs_cursor_close},
+  {"uqi_select_range", 4, ups_nifs_uqi_select_range},
+  {"uqi_result_get_row_count", 1, ups_nifs_uqi_result_get_row_count},
+  {"uqi_result_get_key_type", 1, ups_nifs_uqi_result_get_key_type},
+  {"uqi_result_get_record_type", 1, ups_nifs_uqi_result_get_record_type},
+  {"uqi_result_get_key", 2, ups_nifs_uqi_result_get_key},
+  {"uqi_result_get_record", 2, ups_nifs_uqi_result_get_record},
+  {"uqi_result_close", 1, ups_nifs_uqi_result_close},
 };
 
 ERL_NIF_INIT(ups_nifs, ups_nif_funcs, on_load, NULL, NULL, NULL);

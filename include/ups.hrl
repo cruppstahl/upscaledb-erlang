@@ -31,6 +31,7 @@
 -type db() :: term().
 -type txn() :: term().
 -type cursor() :: term().
+-type result() :: term().
 
 -type env_create_flag() ::
    undefined
