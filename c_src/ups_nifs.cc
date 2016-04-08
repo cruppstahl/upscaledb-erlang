@@ -490,36 +490,28 @@ ups_nifs_uqi_select_range(ErlNifEnv *env, int argc, const ERL_NIF_TERM argv[])
   cursor_wrapper *cwrapper2;
   uqi_result_t *result;
 
-printf("%d\n", __LINE__);
   if (argc != 4)
     return (enif_make_badarg(env));
-printf("%d\n", __LINE__);
   if (!enif_get_resource(env, argv[0], g_ups_env_resource, (void **)&ewrapper)
           || ewrapper->is_closed)
     return (enif_make_badarg(env));
-printf("%d\n", __LINE__);
   if (enif_get_string(env, argv[1], query, sizeof(query), ERL_NIF_LATIN1) <= 0)
     return (enif_make_badarg(env));
-printf("%d\n", __LINE__);
   if (!enif_get_resource(env, argv[2], g_ups_cursor_resource,
                           (void **)&cwrapper1)
           || cwrapper1->is_closed)
     cwrapper1 = 0;
-printf("%d\n", __LINE__);
   if (!enif_get_resource(env, argv[3], g_ups_cursor_resource,
                           (void **)&cwrapper2)
           || cwrapper2->is_closed)
     cwrapper2 = 0;
-printf("%d: '%s', %p, %p\n", __LINE__, query, cwrapper1, cwrapper2);
 
   ups_status_t st = uqi_select_range(ewrapper->env, query,
                  cwrapper1 ? cwrapper1->cursor : 0,
                  cwrapper2 ? cwrapper2->cursor : 0,
                  &result);
-printf("%d: %d\n", __LINE__, st);
   if (st)
     return (enif_make_tuple2(env, g_atom_error, status_to_atom(env, st)));
-printf("%d\n", __LINE__);
 
   result_wrapper *rwrapper = (result_wrapper *)enif_alloc_resource_compat(env,
                                 g_ups_result_resource, sizeof(*rwrapper));

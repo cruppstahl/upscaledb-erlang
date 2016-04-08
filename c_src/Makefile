@@ -15,7 +15,7 @@ upscaledb-$(VERSION).tar.gz:
 
 libupscaledb.a:
 	$(GUNZIP) -c upscaledb-$(VERSION).tar.gz | $(TAR) xf -
-	cd upscaledb-$(VERSION); CFLAGS="-fPIC -O3" ./configure --without-tcmalloc --disable-remote --disable-encryption
+	cd upscaledb-$(VERSION); CFLAGS="-fPIC -O3 -DNDEBUG" ./configure --without-tcmalloc --disable-remote --disable-encryption
 	make -j 4 -C upscaledb-$(VERSION)
 	cp upscaledb-$(VERSION)/src/.libs/libupscaledb.a .
 	mkdir include; cp -R upscaledb-$(VERSION)/include/ups include
