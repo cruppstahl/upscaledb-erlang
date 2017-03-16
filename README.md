@@ -46,11 +46,8 @@ provide a good starting point.
 
 === Licensing ===
 
-The erlang driver is released under the GNU Public License (GPL) 3.0, just
+The erlang driver is released under the Apache Public License 2.0, just
 like upscaledb. See the file COPYING for more information.
-
-A commercial, proprietary license for upscaledb is available on request.
-See http://upscaledb.com for more information.
 
 === Thanks ===
 

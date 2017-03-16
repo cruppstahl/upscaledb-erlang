@@ -1,6 +1,6 @@
 {application, upscaledb,
  [
-  {description, "An erlang driver for upscaledb (http://upscaledb.com)"},
+  {description, "An erlang driver for upscaledb (https://upscaledb.com)"},
   {vsn, "1"},
   {registered, []},
   {applications, [
